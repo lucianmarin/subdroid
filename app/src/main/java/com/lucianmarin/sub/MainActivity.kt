@@ -8,20 +8,18 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
-    private val myWebView: WebView by lazy {
-        findViewById<WebView>(R.id.webView)
-    }
+    private val myWebView: WebView by lazy { findViewById(R.id.webView) }
 
     private val mySwipeRefreshLayout: SwipeRefreshLayout by lazy {
-        findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        findViewById(R.id.swipeRefresh)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
         myWebView.webViewClient = object : WebViewClient() {
+            @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                 return false
             }
@@ -39,7 +37,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
     }
 
     override fun onRefresh() {
-        myWebView.loadUrl(myWebView.url)
+        myWebView.url?.let { myWebView.loadUrl(it) }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
