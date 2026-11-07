@@ -47,8 +47,10 @@ fun FeedStreamScreen(
 
     var entries by remember(section) { mutableStateOf<List<SubEntry>>(emptyList()) }
     var currentPage by remember(section) { mutableIntStateOf(1) }
+    var canLoadMore by remember(section) { mutableStateOf(false) }
     var isLoading by remember(section) { mutableStateOf(false) }
     var isLoadingMore by remember(section) { mutableStateOf(false) }
+    var loadMoreError by remember(section) { mutableStateOf(false) }
     var errorMessage by remember(section) { mutableStateOf<String?>(null) }
     var searchQuery by remember(section) { mutableStateOf("") }
     var submittedQuery by remember(section) { mutableStateOf("") }
@@ -66,6 +68,7 @@ fun FeedStreamScreen(
     suspend fun reloadEntries() {
         isLoading = true
         errorMessage = null
+        loadMoreError = false
         currentPage = 1
         val queryParam = if (section == SidebarSection.DISCOVER && submittedQuery.isNotBlank()) {
             submittedQuery
@@ -79,6 +82,7 @@ fun FeedStreamScreen(
                 query = queryParam
             )
             entries = res.entries
+            canLoadMore = res.entries.size >= pageSize
             isLoading = false
             if (section == SidebarSection.MENTIONS || section == SidebarSection.REPLIES) {
                 viewModel.refreshNotifications()
@@ -107,9 +111,11 @@ fun FeedStreamScreen(
                 )
                 entries = entries + res.entries
                 currentPage = nextPage
+                canLoadMore = res.entries.size >= pageSize
+                loadMoreError = false
                 isLoadingMore = false
-            } catch (err: Exception) {
-                errorMessage = err.message
+            } catch (_: Exception) {
+                loadMoreError = true
                 isLoadingMore = false
             }
         }
@@ -157,12 +163,12 @@ fun FeedStreamScreen(
             SidebarSection.FEED -> {
                 if (uiState.isAuthenticated) {
                     ComposerView(
-                        placeholder = "Start a thread",
+                        placeholder = "Say something",
                         onSubmit = { text -> postNewThread(text) }
                     )
                 } else {
                     PlaceholderBannerView(
-                        text = "Login or register to post and reply",
+                        text = "your account to share",
                         isAuthPrompt = true,
                         onLoginClick = { viewModel.selectSection(SidebarSection.LOGIN) },
                         onRegisterClick = { viewModel.selectSection(SidebarSection.REGISTER) }
@@ -229,9 +235,10 @@ fun FeedStreamScreen(
                 )
             }
 
-            if (entries.size >= currentPage * pageSize) {
+            if (canLoadMore && submittedQuery.isBlank()) {
                 LoadMoreButton(
                     isLoading = isLoadingMore,
+                    isError = loadMoreError,
                     onClick = { loadMore() }
                 )
             }

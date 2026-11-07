@@ -513,41 +513,34 @@ fun StreamEntryView(
 }
 
 /**
- * Matches `templates/items/more.html` (`.more`).
+ * Matches `templates/pages/loader.html` (`.load`) and `Macreply` (`Load more` / `Retry` centered text).
  */
 @Composable
 fun LoadMoreButton(
     isLoading: Boolean,
+    isError: Boolean = false,
     label: String = "Load more",
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(SubTheme.whitesmoke)
-                .clickable(
-                    enabled = !isLoading,
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onClick
-                )
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Text(
-                text = if (isLoading) "Loading..." else label,
-                fontFamily = Route159FontFamily,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = SubTheme.gray
+        Text(
+            text = if (isError) "Retry" else label,
+            fontFamily = Route159FontFamily,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            color = if (isError) SubTheme.alert else SubTheme.gray,
+            modifier = Modifier.clickable(
+                enabled = !isLoading,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
             )
-        }
+        )
     }
 }
 

@@ -67,12 +67,14 @@ fun MemberScreen(
     var isLoadingDetails by remember(username) { mutableStateOf(false) }
     var isLoadingPosts by remember(username) { mutableStateOf(false) }
     var isLoadingMore by remember(username) { mutableStateOf(false) }
+    var loadMoreError by remember(username) { mutableStateOf(false) }
     var errorMessage by remember(username) { mutableStateOf<String?>(null) }
 
     suspend fun loadMember() {
         isLoadingDetails = true
         isLoadingPosts = true
         errorMessage = null
+        loadMoreError = false
         currentPage = 1
         canLoadMore = false
         try {
@@ -117,9 +119,10 @@ fun MemberScreen(
                 entries = entries + result.entries
                 currentPage = result.page
                 canLoadMore = result.entries.size >= pageSize
+                loadMoreError = false
                 isLoadingMore = false
-            } catch (err: Exception) {
-                errorMessage = err.message
+            } catch (_: Exception) {
+                loadMoreError = true
                 isLoadingMore = false
             }
         }
@@ -217,6 +220,7 @@ fun MemberScreen(
                 if (canLoadMore) {
                     LoadMoreButton(
                         isLoading = isLoadingMore,
+                        isError = loadMoreError,
                         onClick = { loadMore() }
                     )
                 }

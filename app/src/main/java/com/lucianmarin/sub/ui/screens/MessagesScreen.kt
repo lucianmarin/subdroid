@@ -55,18 +55,22 @@ fun MessagesInboxScreen(
 
     var chats by remember { mutableStateOf<List<SubChat>>(emptyList()) }
     var currentPage by remember { mutableIntStateOf(1) }
+    var canLoadMore by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var isLoadingMore by remember { mutableStateOf(false) }
+    var loadMoreError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     suspend fun reloadChats() {
         if (!uiState.isAuthenticated) return
         isLoading = true
         errorMessage = null
+        loadMoreError = false
         currentPage = 1
         try {
             val res = viewModel.api.fetchMessagesInbox(page = 1)
             chats = res.entries
+            canLoadMore = res.entries.size >= pageSize
             isLoading = false
             viewModel.refreshNotifications()
         } catch (err: Exception) {
@@ -84,9 +88,11 @@ fun MessagesInboxScreen(
                 val res = viewModel.api.fetchMessagesInbox(page = nextPage)
                 chats = chats + res.entries
                 currentPage = nextPage
+                canLoadMore = res.entries.size >= pageSize
+                loadMoreError = false
                 isLoadingMore = false
-            } catch (err: Exception) {
-                errorMessage = err.message
+            } catch (_: Exception) {
+                loadMoreError = true
                 isLoadingMore = false
             }
         }
@@ -139,9 +145,10 @@ fun MessagesInboxScreen(
                 SubDivider()
             }
 
-            if (chats.size >= currentPage * pageSize) {
+            if (canLoadMore) {
                 LoadMoreButton(
                     isLoading = isLoadingMore,
+                    isError = loadMoreError,
                     onClick = { loadMore() }
                 )
             }
@@ -247,8 +254,10 @@ fun ConversationScreen(
     var messages by remember(username) { mutableStateOf<List<SubChat>>(emptyList()) }
     var isBlockedFromServer by remember(username) { mutableStateOf<Boolean?>(null) }
     var currentPage by remember(username) { mutableIntStateOf(1) }
+    var canLoadMore by remember(username) { mutableStateOf(false) }
     var isLoading by remember(username) { mutableStateOf(false) }
     var isLoadingMore by remember(username) { mutableStateOf(false) }
+    var loadMoreError by remember(username) { mutableStateOf(false) }
     var errorMessage by remember(username) { mutableStateOf<String?>(null) }
     var clearState by remember(username) { mutableStateOf(ClearConversationState.IDLE) }
 
@@ -272,11 +281,13 @@ fun ConversationScreen(
         if (!uiState.isAuthenticated) return
         isLoading = true
         errorMessage = null
+        loadMoreError = false
         currentPage = 1
         clearState = ClearConversationState.IDLE
         try {
             val result = viewModel.api.fetchConversation(username = username, page = 1)
             messages = result.entries
+            canLoadMore = result.entries.size >= pageSize
             if (result.blocked != null) {
                 isBlockedFromServer = result.blocked
             }
@@ -298,9 +309,11 @@ fun ConversationScreen(
                 val result = viewModel.api.fetchConversation(username = username, page = nextPage)
                 messages = messages + result.entries
                 currentPage = nextPage
+                canLoadMore = result.entries.size >= pageSize
+                loadMoreError = false
                 isLoadingMore = false
-            } catch (err: Exception) {
-                errorMessage = err.message
+            } catch (_: Exception) {
+                loadMoreError = true
                 isLoadingMore = false
             }
         }
@@ -398,12 +411,13 @@ fun ConversationScreen(
                 SubDivider()
             }
 
-            if (messages.size >= currentPage * pageSize) {
+            if (canLoadMore) {
                 LoadMoreButton(
                     isLoading = isLoadingMore,
+                    isError = loadMoreError,
                     onClick = { loadMore() }
                 )
-            } else if (messages.isNotEmpty() || clearState == ClearConversationState.CLEARED) {
+            } else if (!isBlockedWaitingForResponse && (messages.isNotEmpty() || clearState == ClearConversationState.CLEARED)) {
                 ClearOutConversationRow(
                     state = clearState,
                     onStartConfirm = { clearState = ClearConversationState.CONFIRMING },
@@ -556,7 +570,8 @@ private fun ConversationMessageRowView(
 }
 
 /**
- * Matches `templates/items/clear.html` (`.more` box with `Clear out` -> `Undo — Yes` -> `Cleared`).
+ * Matches `templates/pages/loader.html` (`.load` with `Clear out` -> `Undo — Yes` -> `Cleared`)
+ * and `Macreply/Views/MessagesView.swift`.
  */
 @Composable
 private fun ClearOutConversationRow(
@@ -568,39 +583,26 @@ private fun ClearOutConversationRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
         when (state) {
             ClearConversationState.IDLE -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(SubTheme.whitesmoke)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onStartConfirm
-                        )
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Text(
-                        text = "Clear out",
-                        fontFamily = Route159FontFamily,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = SubTheme.gray
+                Text(
+                    text = "Clear out",
+                    fontFamily = Route159FontFamily,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = SubTheme.gray,
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onStartConfirm
                     )
-                }
+                )
             }
             ClearConversationState.CONFIRMING, ClearConversationState.RETRY -> {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(SubTheme.whitesmoke)
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -637,22 +639,13 @@ private fun ClearOutConversationRow(
                 }
             }
             ClearConversationState.CLEARED -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(SubTheme.whitesmoke)
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Text(
-                        text = "Cleared",
-                        fontFamily = Route159FontFamily,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = SubTheme.silver
-                    )
-                }
+                Text(
+                    text = "Cleared",
+                    fontFamily = Route159FontFamily,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = SubTheme.gray
+                )
             }
         }
     }

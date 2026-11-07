@@ -27,9 +27,8 @@ import com.lucianmarin.sub.ui.theme.SubDivider
 import com.lucianmarin.sub.ui.theme.SubTheme
 
 /**
- * Matches `templates/reply.html` and `Macreply/Views/ReplyDetailView.swift` 1:1.
- * Displays full ancestor chain, main entry, top reply composer, indented direct replies,
- * and a second reply composer at the bottom when `kids.size > 3`.
+ * Matches `templates/pages/reply.html`, `templates/input/reply.html`, and `Macreply/Views/ReplyDetailView.swift` 1:1.
+ * Displays full ancestor chain, main entry, reply composer / placeholder banner, and indented descendant threads.
  */
 @Composable
 fun ReplyDetailScreen(
@@ -42,6 +41,7 @@ fun ReplyDetailScreen(
     var mainEntry by remember(entryId) { mutableStateOf<SubEntry?>(null) }
     var ancestors by remember(entryId) { mutableStateOf<List<SubEntry>>(emptyList()) }
     var kids by remember(entryId) { mutableStateOf<List<SubEntry>>(emptyList()) }
+    var duplicateFromServer by remember(entryId) { mutableStateOf<Boolean?>(null) }
     var isLoading by remember(entryId) { mutableStateOf(false) }
     var errorMessage by remember(entryId) { mutableStateOf<String?>(null) }
 
@@ -53,6 +53,7 @@ fun ReplyDetailScreen(
             mainEntry = result.entry
             ancestors = result.ancestors
             kids = result.kids
+            duplicateFromServer = result.duplicate
             isLoading = false
         } catch (err: Exception) {
             errorMessage = err.message ?: "Unable to load thread"
@@ -64,8 +65,9 @@ fun ReplyDetailScreen(
         return try {
             val newReply = viewModel.api.postReply(id = entryId, content = content)
             kids = listOf(newReply) + kids
+            duplicateFromServer = true
             mainEntry = mainEntry?.let { cur ->
-                cur.copy(replies = (cur.replies ?: cur.replyCount) + 1)
+                cur.copy(replies = maxOf((cur.replies ?: cur.replyCount) + 1, kids.size))
             }
             Result.success(Unit)
         } catch (err: Exception) {
@@ -86,6 +88,12 @@ fun ReplyDetailScreen(
     ) {
         val focal = mainEntry
         if (focal != null) {
+            val currentUsername = uiState.currentUser?.username
+            val isOwnEntry = !currentUsername.isNullOrEmpty() &&
+                currentUsername.equals(focal.createdBy.username, ignoreCase = true)
+            val hasDuplicateReply = duplicateFromServer ?: (!currentUsername.isNullOrEmpty() &&
+                kids.any { it.createdBy.username.equals(currentUsername, ignoreCase = true) })
+
             // Ancestor chain from root down to immediate parent
             ancestors.forEachIndexed { idx, ancestor ->
                 EntryItemView(
@@ -104,20 +112,35 @@ fun ReplyDetailScreen(
             )
             SubDivider()
 
-            // Top reply composer or auth prompt
-            if (uiState.isAuthenticated) {
-                ComposerView(
-                    placeholder = "Post a reply",
-                    onSubmit = { text -> postReply(text) }
-                )
-            } else {
-                PlaceholderBannerView(
-                    text = "Login or register to post and reply",
-                    showReplyIcon = true,
-                    isAuthPrompt = true,
-                    onLoginClick = { viewModel.selectSection(SidebarSection.LOGIN) },
-                    onRegisterClick = { viewModel.selectSection(SidebarSection.REGISTER) }
-                )
+            // Reply input or placeholder (`templates/input/reply.html`)
+            when {
+                !uiState.isAuthenticated -> {
+                    PlaceholderBannerView(
+                        text = "your account to reply",
+                        showReplyIcon = true,
+                        isAuthPrompt = true,
+                        onLoginClick = { viewModel.selectSection(SidebarSection.LOGIN) },
+                        onRegisterClick = { viewModel.selectSection(SidebarSection.REGISTER) }
+                    )
+                }
+                isOwnEntry -> {
+                    PlaceholderBannerView(
+                        text = if (focal.replyCount == 0 && kids.isEmpty()) "No reply yet" else "Reply back to them",
+                        showReplyIcon = true
+                    )
+                }
+                hasDuplicateReply -> {
+                    PlaceholderBannerView(
+                        text = "Share reply #${focal.id} anywhere",
+                        showReplyIcon = true
+                    )
+                }
+                else -> {
+                    ComposerView(
+                        placeholder = "Reply to @${focal.createdBy.username}",
+                        onSubmit = { text -> postReply(text) }
+                    )
+                }
             }
             SubDivider()
 
@@ -131,25 +154,6 @@ fun ReplyDetailScreen(
                     canDeleteAsRecipient = canDeleteKid,
                     modifier = Modifier.padding(start = 30.dp)
                 )
-                SubDivider()
-            }
-
-            // Bottom composer when kids.size > 3 (`templates/reply.html`)
-            if (kids.size > 3) {
-                if (uiState.isAuthenticated) {
-                    ComposerView(
-                        placeholder = "Post a reply",
-                        onSubmit = { text -> postReply(text) }
-                    )
-                } else {
-                    PlaceholderBannerView(
-                        text = "Login or register to post and reply",
-                        showReplyIcon = true,
-                        isAuthPrompt = true,
-                        onLoginClick = { viewModel.selectSection(SidebarSection.LOGIN) },
-                        onRegisterClick = { viewModel.selectSection(SidebarSection.REGISTER) }
-                    )
-                }
                 SubDivider()
             }
         } else if (isLoading) {

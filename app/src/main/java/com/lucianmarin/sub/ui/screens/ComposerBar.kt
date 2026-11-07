@@ -2,17 +2,22 @@ package com.lucianmarin.sub.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
@@ -30,7 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -50,12 +61,71 @@ import com.lucianmarin.sub.ui.theme.SubMenuHeader
 import com.lucianmarin.sub.ui.theme.SubTheme
 import kotlinx.coroutines.launch
 
+val TopFormOuterHorizontalPadding = 20.dp
+val TopFormOuterVerticalPadding = 10.dp
+val TopFormInnerHorizontalPadding = 8.dp
+val TopFormInnerVerticalPadding = 10.dp
+val TopFormCornerShape = RoundedCornerShape(6.dp)
+
+@Composable
+fun topFormTextStyle(color: Color): TextStyle = TextStyle(
+    fontFamily = Route159FontFamily,
+    fontSize = 14.sp,
+    lineHeight = 20.sp,
+    color = color
+)
+
+/**
+ * Shared container for top input forms (`ComposerView`, `SearchQueryBar`, `PlaceholderBannerView`)
+ * to guarantee identical padding, corner radius, and single-line height across feeds.
+ */
+@Composable
+private fun TopFormTextFieldBox(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    singleLine: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default
+) {
+    Box(
+        modifier = modifier.padding(
+            horizontal = TopFormInnerHorizontalPadding,
+            vertical = TopFormInnerVerticalPadding
+        )
+    ) {
+        if (value.isEmpty()) {
+            Text(
+                text = placeholder,
+                style = topFormTextStyle(SubTheme.gray),
+                maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = enabled,
+            singleLine = singleLine,
+            textStyle = topFormTextStyle(SubTheme.primary),
+            cursorBrush = SolidColor(SubTheme.accent),
+            keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
 /**
  * Matches `templates/input/` composers, `static/script.js`, and `Macreply/Views/ComposerView.swift` 1:1.
  * Auto-expanding single-paragraph field with 720-char clamp, >640 redsmoke warning,
  * live char counter at bottom-right, and Enter-to-submit.
  */
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ComposerView(
     placeholder: String,
@@ -65,13 +135,32 @@ fun ComposerView(
 ) {
     var text by remember(initialText) { mutableStateOf(initialText) }
     var isSubmitting by remember { mutableStateOf(false) }
+    var isFocused by remember { mutableStateOf(false) }
+    var boxSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val density = LocalDensity.current
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val imeBottom = WindowInsets.ime.getBottom(density)
 
     LaunchedEffect(initialText) {
         if (initialText.isNotEmpty() && text.isEmpty()) {
             text = initialText
+        }
+    }
+
+    LaunchedEffect(isFocused, imeBottom, text, boxSize) {
+        if (isFocused && imeBottom > 0 && boxSize.height > 0) {
+            val extraBottomPx = with(density) { 64.dp.toPx() }
+            bringIntoViewRequester.bringIntoView(
+                Rect(
+                    left = 0f,
+                    top = 0f,
+                    right = boxSize.width.toFloat(),
+                    bottom = boxSize.height.toFloat() + extraBottomPx
+                )
+            )
         }
     }
 
@@ -103,75 +192,53 @@ fun ComposerView(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .onSizeChanged { boxSize = it }
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusChanged { isFocused = it.hasFocus }
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
+                .clip(TopFormCornerShape)
                 .background(if (isOverSoftLimit) SubTheme.redsmoke else SubTheme.whitesmoke)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = 8.dp,
-                        top = 10.dp,
-                        end = if (text.isEmpty()) 8.dp else 34.dp,
-                        bottom = 10.dp
-                    )
-            ) {
-                if (text.isEmpty()) {
-                    Text(
-                        text = placeholder,
-                        fontFamily = Route159FontFamily,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = SubTheme.gray
-                    )
-                }
-
-                BasicTextField(
-                    value = text,
-                    onValueChange = { newValue ->
-                        if (newValue.contains('\n') || newValue.contains('\r')) {
-                            val stripped = newValue
-                                .replace("\r\n", " ")
-                                .replace("\n", " ")
-                                .replace("\r", " ")
-                            text = if (stripped.length > 720) stripped.take(720) else stripped
-                            submitCurrent()
-                        } else {
-                            text = if (newValue.length > 720) newValue.take(720) else newValue
-                        }
-                    },
-                    enabled = !isSubmitting,
-                    textStyle = TextStyle(
-                        fontFamily = Route159FontFamily,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = SubTheme.primary
-                    ),
-                    cursorBrush = SolidColor(SubTheme.accent),
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Send
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onSend = { submitCurrent() }
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            TopFormTextFieldBox(
+                value = text,
+                onValueChange = { newValue ->
+                    if (newValue.contains('\n') || newValue.contains('\r')) {
+                        val stripped = newValue
+                            .replace("\r\n", " ")
+                            .replace("\n", " ")
+                            .replace("\r", " ")
+                        text = if (stripped.length > 720) stripped.take(720) else stripped
+                        submitCurrent()
+                    } else {
+                        text = if (newValue.length > 720) newValue.take(720) else newValue
+                    }
+                },
+                placeholder = placeholder,
+                enabled = !isSubmitting,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Send
+                ),
+                keyboardActions = KeyboardActions(
+                    onSend = { submitCurrent() }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
 
             if (text.isNotEmpty()) {
                 Text(
                     text = "${text.length}",
-                    fontFamily = Route159FontFamily,
-                    fontSize = 10.sp,
-                    lineHeight = 10.sp,
-                    color = SubTheme.silver,
+                    style = TextStyle(
+                        fontFamily = Route159FontFamily,
+                        fontSize = 10.sp,
+                        lineHeight = 10.sp,
+                        color = SubTheme.silver
+                    ),
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(end = 6.dp, bottom = 5.dp)
@@ -182,10 +249,12 @@ fun ComposerView(
         if (!errorMessage.isNullOrEmpty()) {
             Text(
                 text = errorMessage!!,
-                fontFamily = Route159FontFamily,
-                fontSize = 13.sp,
-                lineHeight = 16.sp,
-                color = SubTheme.alert
+                style = TextStyle(
+                    fontFamily = Route159FontFamily,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp,
+                    color = SubTheme.alert
+                )
             )
         }
     }
@@ -208,13 +277,17 @@ fun PlaceholderBannerView(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(SubTheme.whitesmoke)
+                .clip(TopFormCornerShape)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(SubTheme.whitesmoke, SubTheme.background)
+                    )
+                )
                 .then(
                     if (onClick != null && !isAuthPrompt) {
                         Modifier.clickable(
@@ -226,10 +299,10 @@ fun PlaceholderBannerView(
                         Modifier
                     }
                 )
-                .padding(horizontal = 8.dp, vertical = 10.dp),
+                .padding(horizontal = TopFormInnerHorizontalPadding, vertical = TopFormInnerVerticalPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isAuthPrompt && text == "Login or register to post and reply") {
+            if (isAuthPrompt) {
                 val annotated = buildAnnotatedString {
                     pushStringAnnotation(tag = "AUTH", annotation = "login")
                     withStyle(SpanStyle(color = SubTheme.primary)) {
@@ -245,17 +318,13 @@ fun PlaceholderBannerView(
                     }
                     pop()
                     withStyle(SpanStyle(color = SubTheme.gray)) {
-                        append(" to post and reply")
+                        append(" $text")
                     }
                 }
                 @Suppress("DEPRECATION")
                 ClickableText(
                     text = annotated,
-                    style = TextStyle(
-                        fontFamily = Route159FontFamily,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    ),
+                    style = topFormTextStyle(SubTheme.gray),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     onClick = { offset ->
@@ -271,10 +340,7 @@ fun PlaceholderBannerView(
             } else {
                 Text(
                     text = text,
-                    fontFamily = Route159FontFamily,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = SubTheme.gray,
+                    style = topFormTextStyle(SubTheme.gray),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -285,7 +351,7 @@ fun PlaceholderBannerView(
             if (showReplyIcon) {
                 SubHeroIcon(
                     name = SidebarSection.REPLIES.iconName,
-                    tint = SubTheme.silver,
+                    tint = SubTheme.gray,
                     size = 16.dp,
                     modifier = Modifier.scale(scaleX = 1f, scaleY = -1f)
                 )
@@ -311,51 +377,29 @@ fun SearchQueryBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
+                .clip(TopFormCornerShape)
                 .background(SubTheme.whitesmoke),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp, vertical = 10.dp)
-            ) {
-                if (query.isEmpty()) {
-                    Text(
-                        text = placeholder,
-                        fontFamily = Route159FontFamily,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = SubTheme.gray
-                    )
-                }
-
-                BasicTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        fontFamily = Route159FontFamily,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = SubTheme.primary
-                    ),
-                    cursorBrush = SolidColor(SubTheme.accent),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = {
-                            focusManager.clearFocus()
-                            onSubmit()
-                        }
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            TopFormTextFieldBox(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = placeholder,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        focusManager.clearFocus()
+                        onSubmit()
+                    }
+                ),
+                modifier = Modifier.weight(1f)
+            )
 
             if (query.isNotEmpty()) {
                 Box(

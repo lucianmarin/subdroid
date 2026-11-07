@@ -334,20 +334,24 @@ fun <T> SubMenuHeader(
                     ) {
                         Text(
                             text = label,
-                            fontFamily = Route159FontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            color = textColor
+                            style = TextStyle(
+                                fontFamily = Route159FontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
+                                color = textColor
+                            )
                         )
                         if (count > 0) {
                             Text(
                                 text = if (count > 99) "99+" else count.toString(),
-                                fontFamily = Route159FontFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp,
-                                lineHeight = 10.sp,
-                                color = SubTheme.alert
+                                style = TextStyle(
+                                    fontFamily = Route159FontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp,
+                                    lineHeight = 10.sp,
+                                    color = SubTheme.alert
+                                )
                             )
                         }
                     }

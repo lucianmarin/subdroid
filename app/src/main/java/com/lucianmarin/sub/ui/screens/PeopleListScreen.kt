@@ -46,8 +46,10 @@ fun PeopleListScreen(
 
     var users by remember(section) { mutableStateOf<List<SubUser>>(emptyList()) }
     var currentPage by remember(section) { mutableIntStateOf(1) }
+    var canLoadMore by remember(section) { mutableStateOf(false) }
     var isLoading by remember(section) { mutableStateOf(false) }
     var isLoadingMore by remember(section) { mutableStateOf(false) }
+    var loadMoreError by remember(section) { mutableStateOf(false) }
     var errorMessage by remember(section) { mutableStateOf<String?>(null) }
     var searchQuery by remember(section) { mutableStateOf("") }
     var submittedQuery by remember(section) { mutableStateOf("") }
@@ -62,6 +64,7 @@ fun PeopleListScreen(
     suspend fun reloadUsers() {
         isLoading = true
         errorMessage = null
+        loadMoreError = false
         currentPage = 1
         val queryParam = if (section == SidebarSection.PEOPLE && submittedQuery.isNotBlank()) {
             submittedQuery
@@ -81,6 +84,7 @@ fun PeopleListScreen(
             } else {
                 res.entries
             }
+            canLoadMore = res.entries.size >= pageSize
             isLoading = false
             if (section == SidebarSection.FOLLOWERS) {
                 viewModel.refreshNotifications()
@@ -109,9 +113,11 @@ fun PeopleListScreen(
                 )
                 users = users + res.entries
                 currentPage = nextPage
+                canLoadMore = res.entries.size >= pageSize
+                loadMoreError = false
                 isLoadingMore = false
-            } catch (err: Exception) {
-                errorMessage = err.message
+            } catch (_: Exception) {
+                loadMoreError = true
                 isLoadingMore = false
             }
         }
@@ -203,9 +209,10 @@ fun PeopleListScreen(
                 SubDivider()
             }
 
-            if (users.size >= currentPage * pageSize) {
+            if (canLoadMore && submittedQuery.isBlank()) {
                 LoadMoreButton(
                     isLoading = isLoadingMore,
+                    isError = loadMoreError,
                     onClick = { loadMore() }
                 )
             }

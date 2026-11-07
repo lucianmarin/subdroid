@@ -3,7 +3,9 @@ package com.lucianmarin.sub.ui.navigation
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -14,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.lucianmarin.sub.model.NavigationDestination
 import com.lucianmarin.sub.model.SidebarSection
@@ -41,6 +44,8 @@ fun MainScaffold(
     viewModel: AppStateViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     BackHandler(enabled = uiState.navigationPath.isNotEmpty()) {
         viewModel.popNavigation()
@@ -70,7 +75,7 @@ fun MainScaffold(
             onSelectSection = { viewModel.selectSection(it) },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
+                .then(if (isKeyboardVisible) Modifier else Modifier.navigationBarsPadding())
                 .padding(bottom = 10.dp)
         )
     }
