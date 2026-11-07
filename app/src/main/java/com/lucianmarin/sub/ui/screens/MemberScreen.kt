@@ -34,6 +34,7 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lucianmarin.sub.model.PaginatedEntriesResponse
 import com.lucianmarin.sub.model.SidebarSection
 import com.lucianmarin.sub.model.SubEntry
 import com.lucianmarin.sub.model.SubUser
@@ -42,6 +43,7 @@ import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubDivider
 import com.lucianmarin.sub.ui.theme.SubPullToRefreshColumn
 import com.lucianmarin.sub.ui.theme.SubTheme
+import com.lucianmarin.sub.ui.theme.applyDiffedFeedUpdate
 import com.lucianmarin.sub.util.ContentParser
 import kotlinx.coroutines.launch
 
@@ -59,31 +61,44 @@ fun MemberScreen(
     val scope = rememberCoroutineScope()
     val pageSize = 16
 
-    var member by remember(username) { mutableStateOf<SubUser?>(null) }
-    var entries by remember(username) { mutableStateOf<List<SubEntry>>(emptyList()) }
-    var isFollowing by remember(username) { mutableStateOf(false) }
-    var followsViewer by remember(username) { mutableStateOf(false) }
+    val cleanUsername = username.lowercase()
+    val memberCacheKey = remember(cleanUsername) { viewModel.api.endpointKey("/$cleanUsername") }
+    val postsCacheKey = remember(cleanUsername) { viewModel.api.endpointKey("/$cleanUsername/posts") }
+
+    val initialCachedMember = remember(cleanUsername) {
+        viewModel.storage.getCachedFeed(memberCacheKey, SubUser.serializer())
+    }
+    val initialCachedPosts = remember(cleanUsername) {
+        viewModel.storage.getCachedFeed(postsCacheKey, PaginatedEntriesResponse.serializer())
+    }
+
+    var member by remember(username) { mutableStateOf(initialCachedMember) }
+    var entries by remember(username) { mutableStateOf(initialCachedPosts?.entries ?: emptyList()) }
+    var isFollowing by remember(username) { mutableStateOf(initialCachedMember?.followed ?: false) }
+    var followsViewer by remember(username) { mutableStateOf(initialCachedMember?.follows ?: false) }
     var currentPage by remember(username) { mutableIntStateOf(1) }
-    var canLoadMore by remember(username) { mutableStateOf(false) }
-    var isLoadingDetails by remember(username) { mutableStateOf(false) }
-    var isLoadingPosts by remember(username) { mutableStateOf(false) }
+    var canLoadMore by remember(username) { mutableStateOf((initialCachedPosts?.entries?.size ?: 0) >= pageSize) }
+    var isLoadingDetails by remember(username) { mutableStateOf(initialCachedMember == null) }
+    var isLoadingPosts by remember(username) { mutableStateOf(initialCachedPosts == null) }
     var isLoadingMore by remember(username) { mutableStateOf(false) }
     var loadMoreError by remember(username) { mutableStateOf(false) }
     var errorMessage by remember(username) { mutableStateOf<String?>(null) }
 
     suspend fun loadMember() {
-        isLoadingDetails = true
-        isLoadingPosts = true
+        val oldList = entries
+
+        isLoadingDetails = member == null
+        isLoadingPosts = entries.isEmpty()
         errorMessage = null
         loadMoreError = false
         currentPage = 1
-        canLoadMore = false
         try {
             val fetchedMember = viewModel.api.fetchMemberDetail(username = username)
             member = fetchedMember
             isFollowing = fetchedMember.followed
             followsViewer = fetchedMember.follows
             isLoadingDetails = false
+            viewModel.storage.setCachedFeed(memberCacheKey, fetchedMember, SubUser.serializer())
 
             if (uiState.currentUser?.username?.equals(fetchedMember.username, ignoreCase = true) == true) {
                 viewModel.updateCurrentUser(
@@ -96,10 +111,16 @@ fun MemberScreen(
                 username = username,
                 page = 1
             )
-            entries = postsResponse.entries
             currentPage = postsResponse.page
             canLoadMore = postsResponse.entries.size >= pageSize
+            viewModel.storage.setCachedFeed(postsCacheKey, postsResponse, PaginatedEntriesResponse.serializer())
             isLoadingPosts = false
+            applyDiffedFeedUpdate(
+                oldList = oldList,
+                newList = postsResponse.entries,
+                keySelector = { it.id },
+                onUpdate = { entries = it }
+            )
         } catch (err: Exception) {
             errorMessage = err.message ?: "Unable to load @$username"
             isLoadingDetails = false
@@ -290,7 +311,7 @@ fun UserRowView(
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Row 1: FullName (+ @username if member header) + Follow/Logout action (if people list) + right date
+        // Row 1: FullName (+ @username if member header) + Follow/Edit action (if people list) + right date
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -334,16 +355,16 @@ fun UserRowView(
                 )
                 if (isSelf) {
                     Text(
-                        text = "Logout",
+                        text = "Edit",
                         fontFamily = Route159FontFamily,
                         fontSize = 14.sp,
                         lineHeight = 20.sp,
-                        color = SubTheme.alert,
+                        color = SubTheme.gray,
                         modifier = Modifier.clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) {
-                            viewModel.logout()
+                            viewModel.openOptions()
                         }
                     )
                 } else {
@@ -616,7 +637,7 @@ fun MemberStatusRowView(
                 }
             )
             Text(
-                text = "OPTIONS",
+                text = "EDIT",
                 fontFamily = Route159FontFamily,
                 fontSize = 12.sp,
                 lineHeight = 16.sp,

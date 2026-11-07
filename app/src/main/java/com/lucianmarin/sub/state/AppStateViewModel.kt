@@ -197,6 +197,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
     fun logout() {
         storage.setAuthToken(null)
         storage.setSavedUser(null)
+        storage.clearFeedCache()
         api.authToken = null
         lastKnownActivity = 0
         lastKnownMessages = 0

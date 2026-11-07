@@ -21,6 +21,7 @@ class SessionStorage(private val context: Context) {
 
     companion object {
         private const val SECURE_PREFS_NAME = "subdroid_secure_session"
+        private const val FEED_CACHE_PREFS_NAME = "subdroid_feed_cache"
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_SAVED_USER_JSON = "saved_user_json"
 
@@ -32,6 +33,37 @@ class SessionStorage(private val context: Context) {
 
     private val securePrefs: SharedPreferences by lazy {
         context.getSharedPreferences(SECURE_PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private val feedCachePrefs: SharedPreferences by lazy {
+        context.getSharedPreferences(FEED_CACHE_PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private val memoryFeedCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    fun <T> getCachedFeed(urlKey: String, serializer: kotlinx.serialization.KSerializer<T>): T? {
+        val raw = memoryFeedCache[urlKey] ?: feedCachePrefs.getString(urlKey, null) ?: return null
+        return try {
+            val decoded = APIClient.json.decodeFromString(serializer, raw)
+            memoryFeedCache[urlKey] = raw
+            decoded
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun <T> setCachedFeed(urlKey: String, value: T, serializer: kotlinx.serialization.KSerializer<T>) {
+        try {
+            val encoded = APIClient.json.encodeToString(serializer, value)
+            memoryFeedCache[urlKey] = encoded
+            feedCachePrefs.edit().putString(urlKey, encoded).apply()
+        } catch (_: Exception) {
+        }
+    }
+
+    fun clearFeedCache() {
+        memoryFeedCache.clear()
+        feedCachePrefs.edit().clear().apply()
     }
 
     fun getAuthToken(): String? =

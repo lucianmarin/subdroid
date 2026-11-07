@@ -62,6 +62,9 @@ class APIClient(
         }
     }
 
+    fun endpointKey(path: String, queryParams: Map<String, String?> = emptyMap()): String =
+        buildUrl(path, queryParams).toString()
+
     private fun buildUrl(path: String, queryParams: Map<String, String?> = emptyMap()): URL {
         val cleanBase = normalizeBaseUrl(baseUrl)
         val cleanPath = path.trimStart('/')

@@ -1,7 +1,6 @@
 package com.lucianmarin.sub.ui.navigation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -49,11 +48,10 @@ fun SidebarView(
 
     Row(
         modifier = modifier
-            .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
+            .shadow(elevation = 8.dp, shape = RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(SubTheme.background)
-            .border(width = 1.dp, color = SubTheme.gainsboro, shape = RoundedCornerShape(12.dp))
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            .padding(horizontal = 6.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -107,7 +105,7 @@ private fun SidebarIconButton(
         modifier = Modifier
             .width(44.dp)
             .height(34.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(bgColor)
             .semantics { contentDescription = title }
             .clickable(

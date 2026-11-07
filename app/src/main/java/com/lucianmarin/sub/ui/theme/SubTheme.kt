@@ -1,5 +1,9 @@
 package com.lucianmarin.sub.ui.theme
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,6 +40,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +54,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -357,6 +363,51 @@ fun SubPullToRefreshColumn(
                 .verticalScroll(rememberScrollState()),
             content = content
         )
+    }
+}
+
+/**
+ * Diffs a freshly fetched list against the currently displayed list by both key and content (`equals`),
+ * updating existing items in-place immediately and inserting brand-new items one by one with a 200ms delay.
+ */
+suspend fun <T, K> applyDiffedFeedUpdate(
+    oldList: List<T>,
+    newList: List<T>,
+    keySelector: (T) -> K,
+    onUpdate: (List<T>) -> Unit,
+    delayMillis: Long = 200L
+) {
+    if (oldList.isEmpty()) {
+        onUpdate(newList)
+        return
+    }
+    val oldByKey = oldList.associateBy(keySelector)
+    val newIndices = newList.indices.filter { idx ->
+        keySelector(newList[idx]) !in oldByKey
+    }
+    val hasModifiedOrRemoved = oldList.size != newList.size - newIndices.size ||
+        newList.any { item ->
+            val oldItem = oldByKey[keySelector(item)]
+            oldItem != null && oldItem != item
+        }
+
+    if (newIndices.isEmpty()) {
+        if (hasModifiedOrRemoved || oldList != newList) {
+            onUpdate(newList)
+        }
+        return
+    }
+
+    val newIndexSet = newIndices.toSet()
+    if (hasModifiedOrRemoved) {
+        onUpdate(newList.filterIndexed { idx, _ -> idx !in newIndexSet })
+    }
+
+    val revealedIndices = mutableSetOf<Int>()
+    for (idx in newIndices.reversed()) {
+        delay(delayMillis)
+        revealedIndices.add(idx)
+        onUpdate(newList.filterIndexed { i, _ -> i !in newIndexSet || i in revealedIndices })
     }
 }
 
