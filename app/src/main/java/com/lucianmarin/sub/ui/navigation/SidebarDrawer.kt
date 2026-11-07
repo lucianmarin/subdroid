@@ -28,6 +28,7 @@ import com.lucianmarin.sub.model.NavigationDestination
 import com.lucianmarin.sub.model.SidebarSection
 import com.lucianmarin.sub.model.SubNotifications
 import com.lucianmarin.sub.state.AppUiState
+import com.lucianmarin.sub.ui.theme.LocalSubPalette
 import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubHeroIcon
 import com.lucianmarin.sub.ui.theme.SubTheme
@@ -46,11 +47,13 @@ fun SidebarView(
     val isInConversation = uiState.navigationPath.lastOrNull() is NavigationDestination.Conversation
     val activeParentSection = uiState.selectedSection.parentBottomSection
 
+    val isDark = LocalSubPalette.current.isDark
+    val barBg = if (isDark) SubTheme.whitesmoke else SubTheme.background
     Row(
         modifier = modifier
-            .shadow(elevation = 8.dp, shape = RoundedCornerShape(10.dp))
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(10.dp))
             .clip(RoundedCornerShape(10.dp))
-            .background(SubTheme.background)
+            .background(barBg)
             .padding(horizontal = 6.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
