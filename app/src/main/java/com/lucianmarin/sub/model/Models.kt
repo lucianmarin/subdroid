@@ -309,11 +309,11 @@ enum class SidebarSection(
     val requiresAuth: Boolean = false
 ) {
     FEED("feed", "Feed", "bolt", requiresAuth = true),
-    FOLLOWING("following", "Following", "playlist_add", requiresAuth = true),
-    FOLLOWERS("followers", "Followers", "playlist_play", requiresAuth = true),
+    FOLLOWING("following", "Following", "move_up", requiresAuth = true),
+    FOLLOWERS("followers", "Followers", "move_down", requiresAuth = true),
     MENTIONS("mentions", "Mentions", "alternate_email", requiresAuth = true),
     MESSAGES("messages", "Messages", "chat_bubble", requiresAuth = true),
-    REPLIES("replies", "Replies", "undo", requiresAuth = true),
+    REPLIES("replies", "Replies", "reply", requiresAuth = true),
     SAVED("saved", "Saved", "bookmark", requiresAuth = true),
     PROFILE("profile", "Profile", "account_circle", requiresAuth = true),
     OPTIONS("options", "Options", "tune", requiresAuth = true),

@@ -340,7 +340,7 @@ fun PlaceholderBannerView(
 
             if (showReplyIcon) {
                 SubHeroIcon(
-                    name = SidebarSection.REPLIES.iconName,
+                    name = "reply",
                     tint = SubTheme.gray,
                     size = 16.dp,
                     fontWeight = FontWeight.Normal,
