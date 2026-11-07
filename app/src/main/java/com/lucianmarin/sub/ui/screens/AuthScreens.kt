@@ -40,13 +40,12 @@ import kotlinx.coroutines.launch
 
 enum class LoginTab(val label: String) {
     LOGIN("Login"),
-    REGISTER("Register"),
-    RECOVER("Recover")
+    REGISTER("Register")
 }
 
 /**
- * Matches `templates/pages/login.html`, `templates/pages/register.html`, `templates/pages/recover.html`,
- * and `Macreply/Views/AuthViews.swift` (`LoginView` / `RegisterView`) with grouped `Login · Register · Recover` subtabs.
+ * Matches `templates/pages/login.html`, `templates/pages/register.html`,
+ * and `Macreply/Views/AuthViews.swift` (`LoginView` / `RegisterView`) with grouped `Login · Register` subtabs.
  */
 @Composable
 fun LoginScreen(
@@ -68,18 +67,16 @@ fun LoginScreen(
     LaunchedEffect(uiState.selectedSection) {
         when (uiState.selectedSection) {
             SidebarSection.REGISTER -> activeTab = LoginTab.REGISTER
-            SidebarSection.LOGIN -> if (activeTab == LoginTab.REGISTER) activeTab = LoginTab.LOGIN
+            SidebarSection.LOGIN -> activeTab = LoginTab.LOGIN
             else -> {}
         }
     }
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var recoverEmail by remember { mutableStateOf("") }
 
     var isSubmitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var statusMessage by remember { mutableStateOf<String?>(null) }
 
     fun submitLogin() {
         if (isSubmitting) return
@@ -91,7 +88,6 @@ fun LoginScreen(
         }
         isSubmitting = true
         errorMessage = null
-        statusMessage = null
 
         scope.launch {
             try {
@@ -115,16 +111,6 @@ fun LoginScreen(
         }
     }
 
-    fun submitRecover() {
-        if (isSubmitting) return
-        val email = recoverEmail.trim()
-        if (email.isEmpty()) {
-            errorMessage = "Please enter your email address."
-            return
-        }
-        statusMessage = "Password recovery is available on subreply.com/recover."
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -137,7 +123,6 @@ fun LoginScreen(
             onSelect = { tab ->
                 activeTab = tab
                 errorMessage = null
-                statusMessage = null
                 when (tab) {
                     LoginTab.LOGIN -> if (uiState.selectedSection != SidebarSection.LOGIN) {
                         viewModel.selectSection(SidebarSection.LOGIN)
@@ -145,7 +130,6 @@ fun LoginScreen(
                     LoginTab.REGISTER -> if (uiState.selectedSection != SidebarSection.REGISTER) {
                         viewModel.selectSection(SidebarSection.REGISTER)
                     }
-                    LoginTab.RECOVER -> {}
                 }
             }
         )
@@ -205,52 +189,6 @@ fun LoginScreen(
             }
             LoginTab.REGISTER -> {
                 RegisterFormContent(viewModel = viewModel)
-            }
-            LoginTab.RECOVER -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SubFormField(
-                        label = "Email address",
-                        required = true,
-                        value = recoverEmail,
-                        onValueChange = { recoverEmail = it },
-                        keyboardType = KeyboardType.Email,
-                        onSubmit = { submitRecover() },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    if (!errorMessage.isNullOrEmpty()) {
-                        Text(
-                            text = errorMessage!!,
-                            fontFamily = Route159FontFamily,
-                            fontSize = 13.sp,
-                            lineHeight = 16.sp,
-                            color = SubTheme.alert
-                        )
-                    }
-                    if (!statusMessage.isNullOrEmpty()) {
-                        Text(
-                            text = statusMessage!!,
-                            fontFamily = Route159FontFamily,
-                            fontSize = 13.sp,
-                            lineHeight = 16.sp,
-                            color = SubTheme.accent
-                        )
-                    }
-
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Spacer(modifier = Modifier.weight(1f))
-                        SubSubmitButton(
-                            title = if (isSubmitting) "Sending..." else "Send",
-                            enabled = !isSubmitting,
-                            onClick = { submitRecover() }
-                        )
-                    }
-                }
             }
         }
 
@@ -447,7 +385,7 @@ private fun RegisterFormContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "You agree with Subreply's Privacy, Safety and Terms.",
+                text = "You agree with Privacy, Safety and Terms.",
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
                 lineHeight = 16.sp,

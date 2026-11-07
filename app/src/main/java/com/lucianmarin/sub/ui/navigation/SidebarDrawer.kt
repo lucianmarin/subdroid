@@ -36,7 +36,7 @@ import com.lucianmarin.sub.ui.theme.SubTheme
 /**
  * Floating bottom navigation bar displaying the main sections:
  * - Authenticated: Feed, Messages (subtabs: Replies, Mentions), Trending (subtabs: Saved, Followers, Following), People, Discover
- * - Unauthenticated: About, Login, Register, Trending, People, Discover
+ * - Unauthenticated: About, Login (subtabs: Register), Trending, People, Discover
  */
 @Composable
 fun SidebarView(
@@ -65,14 +65,29 @@ fun SidebarView(
                 else -> activeParentSection == section
             }
 
-            val iconName = if (section == SidebarSection.MESSAGES && isInConversation) {
-                when (uiState.activeConversationHasMessages) {
-                    true -> "chat"
-                    false -> "sms"
-                    null -> section.iconName
+            val iconName = when {
+                section == SidebarSection.MESSAGES && isInConversation -> {
+                    when (uiState.activeConversationHasMessages) {
+                        true -> "chat"
+                        false -> "sms"
+                        null -> section.iconName
+                    }
                 }
-            } else {
-                section.iconName
+                section == SidebarSection.MESSAGES &&
+                    (uiState.selectedSection == SidebarSection.REPLIES || uiState.selectedSection == SidebarSection.MENTIONS) -> {
+                    uiState.selectedSection.iconName
+                }
+                section == SidebarSection.TRENDING &&
+                    (uiState.selectedSection == SidebarSection.SAVED ||
+                        uiState.selectedSection == SidebarSection.FOLLOWERS ||
+                        uiState.selectedSection == SidebarSection.FOLLOWING) -> {
+                    uiState.selectedSection.iconName
+                }
+                section == SidebarSection.LOGIN &&
+                    uiState.selectedSection == SidebarSection.REGISTER -> {
+                    uiState.selectedSection.iconName
+                }
+                else -> section.iconName
             }
 
             SidebarIconButton(
