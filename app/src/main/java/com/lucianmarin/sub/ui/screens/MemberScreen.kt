@@ -598,7 +598,7 @@ fun MemberStatusRowView(
     ) {
         if (isCurrentUser) {
             Text(
-                text = "NOTES",
+                text = "NOTE",
                 fontFamily = Route159FontFamily,
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
