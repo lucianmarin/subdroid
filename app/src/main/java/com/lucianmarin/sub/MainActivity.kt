@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,6 +28,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        keepSplashScreenUntilInitialized()
         requestNotificationPermissionIfNeeded()
         viewModel.handleDeepLink(intent)
 
@@ -36,6 +38,22 @@ class MainActivity : ComponentActivity() {
                 MainScaffold(viewModel = viewModel)
             }
         }
+    }
+
+    private fun keepSplashScreenUntilInitialized() {
+        val content = window.decorView
+        content.viewTreeObserver.addOnPreDrawListener(
+            object : ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    return if (viewModel.uiState.value.isInitialized) {
+                        content.viewTreeObserver.removeOnPreDrawListener(this)
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+        )
     }
 
     override fun onNewIntent(intent: Intent) {

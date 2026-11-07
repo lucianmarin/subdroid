@@ -52,7 +52,8 @@ data class AppUiState(
     val activeConversationHasMessages: Boolean? = null,
     val notifications: SubNotifications = SubNotifications(),
     val searchRequestedQuery: String? = null,
-    val reloadTrigger: Int = 0
+    val reloadTrigger: Int = 0,
+    val isInitialized: Boolean = false
 ) {
     val isAuthenticated: Boolean
         get() = !authToken.isNullOrBlank() && currentUser != null
@@ -127,7 +128,8 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
             _uiState.update {
                 it.copy(
                     themeMode = savedTheme,
-                    apiBaseUrl = savedBaseUrl
+                    apiBaseUrl = savedBaseUrl,
+                    isInitialized = true
                 )
             }
 
