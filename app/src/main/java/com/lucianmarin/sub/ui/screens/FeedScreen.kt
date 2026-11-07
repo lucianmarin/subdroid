@@ -160,7 +160,7 @@ fun FeedStreamScreen(
             SidebarSection.FEED -> {
                 if (uiState.isAuthenticated) {
                     ComposerView(
-                        placeholder = "Say something",
+                        placeholder = "Start a thread",
                         onSubmit = { text -> postNewThread(text) }
                     )
                 } else {

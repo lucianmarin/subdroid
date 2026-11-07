@@ -333,7 +333,7 @@ fun SubPullToRefreshColumn(
 
 /**
  * Matches `.menu` in `../subreply/static/style.sass` and `MenuHeaderView` in `../macreply`,
- * sized to match the exact 60.dp total height (10.dp outer + 10.dp inner vertical padding + 20.sp text)
+ * sized to match the exact 56.dp total height (10.dp outer + 10.dp top / 6.dp bottom inner vertical padding + 20.sp text)
  * of the top whitesmoke forms (`PlaceholderBannerView` and `SearchQueryBar`).
  */
 @Composable
@@ -352,7 +352,7 @@ fun <T> SubMenuHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp),
+                .padding(top = 10.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

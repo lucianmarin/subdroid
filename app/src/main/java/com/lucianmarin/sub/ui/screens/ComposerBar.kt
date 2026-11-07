@@ -66,9 +66,9 @@ import kotlinx.coroutines.launch
 
 val TopFormOuterHorizontalPadding = 20.dp
 val TopFormOuterVerticalPadding = 10.dp
-val TopFormInnerHorizontalPadding = 8.dp
-val TopFormInnerVerticalPadding = 10.dp
-val TopFormCornerShape = RoundedCornerShape(6.dp)
+val TopFormInnerHorizontalPadding = 10.dp
+val TopFormInnerVerticalPadding = 8.dp
+val TopFormCornerShape = RoundedCornerShape(10.dp)
 
 @Composable
 fun topFormTextStyle(color: Color): TextStyle = TextStyle(
@@ -438,7 +438,7 @@ fun SearchQueryBar(
 /**
  * Top subtab navigation bar for Messages (Messages, Replies, Mentions) and
  * Trending (Trending, Saved, Followers, Following), rendered in `SubMenuHeader` style
- * with the same 60.dp total height as the top whitesmoke forms.
+ * with the same 56.dp total height as the top whitesmoke forms.
  */
 @Composable
 fun SectionSubtabsHeader(
