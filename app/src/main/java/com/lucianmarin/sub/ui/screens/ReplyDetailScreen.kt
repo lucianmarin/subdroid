@@ -19,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lucianmarin.sub.model.ReplyDetailResponse
 import com.lucianmarin.sub.model.SidebarSection
 import com.lucianmarin.sub.model.SubEntry
 import com.lucianmarin.sub.state.AppStateViewModel
@@ -40,73 +39,23 @@ fun ReplyDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    val detailCacheKey = remember(entryId) { viewModel.api.endpointKey("/reply/$entryId") }
-    val initialCached = remember(entryId) {
-        viewModel.storage.getCachedFeed(detailCacheKey, ReplyDetailResponse.serializer())
-    }
-
-    var mainEntry by remember(entryId) { mutableStateOf(initialCached?.entry) }
-    var ancestors by remember(entryId) { mutableStateOf(initialCached?.ancestors ?: emptyList()) }
-    var kids by remember(entryId) { mutableStateOf(initialCached?.kids ?: emptyList()) }
-    var duplicateFromServer by remember(entryId) { mutableStateOf(initialCached?.duplicate) }
-    var isLoading by remember(entryId) { mutableStateOf(initialCached == null) }
+    var mainEntry by remember(entryId) { mutableStateOf<SubEntry?>(null) }
+    var ancestors by remember(entryId) { mutableStateOf<List<SubEntry>>(emptyList()) }
+    var kids by remember(entryId) { mutableStateOf<List<SubEntry>>(emptyList()) }
+    var duplicateFromServer by remember(entryId) { mutableStateOf<Boolean?>(null) }
+    var isLoading by remember(entryId) { mutableStateOf(false) }
     var errorMessage by remember(entryId) { mutableStateOf<String?>(null) }
 
     suspend fun loadDetail() {
-        val oldKids = kids
-        val hadBaseline = mainEntry != null || oldKids.isNotEmpty()
-
         isLoading = mainEntry == null
         errorMessage = null
         try {
             val result = viewModel.api.fetchReplyDetail(id = entryId)
             mainEntry = result.entry
             ancestors = result.ancestors
+            kids = result.kids
             duplicateFromServer = result.duplicate
-            viewModel.storage.setCachedFeed(detailCacheKey, result, ReplyDetailResponse.serializer())
             isLoading = false
-            if (!hadBaseline) {
-                kids = result.kids
-            } else {
-                val oldKidIds = oldKids.map { it.id }.toSet()
-                val oldNestedIds = oldKids.flatMap { it.streamKids }.map { it.id }.toSet()
-                val newReplyIds = buildList {
-                    for (kid in result.kids) {
-                        if (kid.id !in oldKidIds) add(kid.id)
-                        for (nested in kid.streamKids) {
-                            if (nested.id !in oldNestedIds) add(nested.id)
-                        }
-                    }
-                }.reversed()
-                if (newReplyIds.isEmpty()) {
-                    if (oldKids != result.kids) {
-                        kids = result.kids
-                    }
-                } else {
-                    val newReplyIdSet = newReplyIds.toSet()
-                    val revealedIds = mutableSetOf<Int>()
-                    fun filterKids(revealed: Set<Int>): List<SubEntry> =
-                        result.kids.mapNotNull { kid ->
-                            if (kid.id in newReplyIdSet && kid.id !in revealed) {
-                                null
-                            } else {
-                                val filteredNested = kid.kids?.filter { nested ->
-                                    nested.id !in newReplyIdSet || nested.id in revealed
-                                }
-                                kid.copy(kids = filteredNested)
-                            }
-                        }
-                    val initialFiltered = filterKids(revealedIds)
-                    if (initialFiltered != oldKids) {
-                        kids = initialFiltered
-                    }
-                    for (id in newReplyIds) {
-                        kotlinx.coroutines.delay(200L)
-                        revealedIds.add(id)
-                        kids = filterKids(revealedIds)
-                    }
-                }
-            }
         } catch (err: Exception) {
             errorMessage = err.message ?: "Unable to load thread"
             isLoading = false
@@ -120,18 +69,6 @@ fun ReplyDetailScreen(
             duplicateFromServer = true
             mainEntry = mainEntry?.let { cur ->
                 cur.copy(replies = maxOf((cur.replies ?: cur.replyCount) + 1, kids.size))
-            }
-            mainEntry?.let { cur ->
-                viewModel.storage.setCachedFeed(
-                    detailCacheKey,
-                    ReplyDetailResponse(
-                        entry = cur,
-                        ancestors = ancestors,
-                        kids = kids,
-                        duplicate = true
-                    ),
-                    ReplyDetailResponse.serializer()
-                )
             }
             Result.success(Unit)
         } catch (err: Exception) {

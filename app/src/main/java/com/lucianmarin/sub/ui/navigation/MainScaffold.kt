@@ -31,7 +31,6 @@ import com.lucianmarin.sub.ui.screens.MemberScreen
 import com.lucianmarin.sub.ui.screens.MessagesInboxScreen
 import com.lucianmarin.sub.ui.screens.OptionsScreen
 import com.lucianmarin.sub.ui.screens.PeopleListScreen
-import com.lucianmarin.sub.ui.screens.RegisterScreen
 import com.lucianmarin.sub.ui.screens.ReplyDetailScreen
 import com.lucianmarin.sub.ui.theme.SubTheme
 

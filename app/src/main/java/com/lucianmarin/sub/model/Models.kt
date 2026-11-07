@@ -8,9 +8,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonTransformingSerializer
 
-typealias SubMember = SubUser
-typealias SubMessageItem = SubChat
-
 data class SocialLinkItem(
     val label: String,
     val url: String
@@ -37,26 +34,8 @@ data class SubUser(
     val phone: Map<String, String> = emptyMap(),
     val social: Map<String, String> = emptyMap()
 ) {
-    val id: String
-        get() = username
-
     val fullName: String
         get() = rawFullName?.takeIf { it.isNotBlank() } ?: username
-
-    val displayName: String
-        get() = fullName
-
-    val status: String?
-        get() = emoji.takeIf { it.isNotEmpty() }
-
-    val bio: String?
-        get() = description.takeIf { it.isNotEmpty() }
-
-    val isFollowing: Boolean
-        get() = followed
-
-    val followsMe: Boolean
-        get() = follows
 
     val cityLabel: String
         get() = location.split(",").firstOrNull()?.trim().orEmpty()
@@ -144,18 +123,6 @@ data class SubEntry(
     @SerialName("has_explicit_null_parent") val hasExplicitNullParent: Boolean = false,
     val kids: List<SubEntry>? = null
 ) {
-    val text: String
-        get() = content
-
-    val user: SubUser
-        get() = createdBy
-
-    val relativeTime: String
-        get() = timestamp
-
-    val isBookmarked: Boolean
-        get() = saved
-
     /**
      * Matches `entry.kids[:5]|reverse` in `templates/common/stream.html` and `Macreply`.
      */
@@ -255,16 +222,7 @@ data class SubChat(
     @SerialName("to_user") val toUser: SubUser = SubUser(),
     val seen: Boolean = false,
     val timestamp: String = ""
-) {
-    val text: String
-        get() = content
-
-    val sender: SubUser
-        get() = createdBy
-
-    val recipient: SubUser
-        get() = toUser
-}
+)
 
 @Serializable
 data class SubNotifications(
@@ -273,9 +231,6 @@ data class SubNotifications(
     val replies: Int = 0,
     val messages: Int = 0
 ) {
-    val total: Int
-        get() = followers + mentions + replies + messages
-
     val activityCount: Int
         get() = followers + mentions + replies
 
@@ -294,55 +249,20 @@ data class SubNotifications(
 data class PaginatedEntriesResponse(
     val page: Int = 1,
     val entries: List<SubEntry> = emptyList()
-) {
-    val hasNext: Boolean
-        get() = entries.size >= 16 && entries.size % 16 == 0
-}
-
-typealias FeedResponse = PaginatedEntriesResponse
+)
 
 @Serializable
 data class PaginatedUsersResponse(
     val page: Int = 1,
     val entries: List<SubUser> = emptyList()
-) {
-    val users: List<SubUser>
-        get() = entries
-
-    val hasNext: Boolean
-        get() = entries.size >= 24 && entries.size % 24 == 0
-}
-
-typealias PeopleResponse = PaginatedUsersResponse
+)
 
 @Serializable
 data class PaginatedChatsResponse(
     val page: Int = 1,
     val blocked: Boolean? = null,
     val entries: List<SubChat> = emptyList()
-) {
-    val messages: List<SubChat>
-        get() = entries
-
-    fun partnersFor(currentUsername: String?): List<SubUser> {
-        val map = LinkedHashMap<String, SubUser>()
-        for (msg in entries) {
-            val s = msg.createdBy
-            val r = msg.toUser
-            val partner = when {
-                currentUsername == null -> s
-                s.username.equals(currentUsername, ignoreCase = true) -> r
-                else -> s
-            }
-            if (partner.username.isNotBlank()) {
-                map.putIfAbsent(partner.username.lowercase(), partner)
-            }
-        }
-        return map.values.toList()
-    }
-}
-
-typealias MessagesResponse = PaginatedChatsResponse
+)
 
 @Serializable
 data class ReplyDetailResponse(
@@ -350,34 +270,16 @@ data class ReplyDetailResponse(
     val ancestors: List<SubEntry> = emptyList(),
     val kids: List<SubEntry> = emptyList(),
     val duplicate: Boolean = false
-) {
-    val parent: SubEntry
-        get() = if (entry.parent == null && ancestors.isNotEmpty()) {
-            entry.copy(parent = ancestors.last())
-        } else {
-            entry
-        }
-
-    val entries: List<SubEntry>
-        get() = kids
-}
+)
 
 @Serializable
 data class MemberResponse(
     val member: SubUser? = null,
-    @SerialName("user") val rawUser: SubUser? = null,
-    val entries: List<SubEntry> = emptyList(),
-    val page: Int = 1
+    @SerialName("user") val rawUser: SubUser? = null
 ) {
     val user: SubUser?
         get() = member ?: rawUser
 }
-
-data class MemberFeedResponse(
-    val page: Int,
-    val member: SubUser,
-    val entries: List<SubEntry>
-)
 
 @Serializable
 data class AuthResponse(
@@ -398,32 +300,29 @@ data class ActionStatusResponse(
     val errors: Map<String, String>? = null
 )
 
-typealias ActionResponse = ActionStatusResponse
-
 // MARK: - Navigation & Sidebar Sections (1:1 with `../subreply/templates/sidebar.html` & `../macreply`)
 
 enum class SidebarSection(
     val key: String,
     val title: String,
     val iconName: String,
-    val apiPath: String? = null,
     val requiresAuth: Boolean = false
 ) {
-    FEED("feed", "Feed", "bolt", "/feed", requiresAuth = true),
-    FOLLOWING("following", "Following", "playlist_add", "/following", requiresAuth = true),
-    FOLLOWERS("followers", "Followers", "playlist_play", "/followers", requiresAuth = true),
-    MENTIONS("mentions", "Mentions", "alternate_email", "/mentions", requiresAuth = true),
-    MESSAGES("messages", "Messages", "chat_bubble", "/messages", requiresAuth = true),
-    REPLIES("replies", "Replies", "undo", "/replies", requiresAuth = true),
-    SAVED("saved", "Saved", "bookmark", "/saved", requiresAuth = true),
+    FEED("feed", "Feed", "bolt", requiresAuth = true),
+    FOLLOWING("following", "Following", "playlist_add", requiresAuth = true),
+    FOLLOWERS("followers", "Followers", "playlist_play", requiresAuth = true),
+    MENTIONS("mentions", "Mentions", "alternate_email", requiresAuth = true),
+    MESSAGES("messages", "Messages", "chat_bubble", requiresAuth = true),
+    REPLIES("replies", "Replies", "undo", requiresAuth = true),
+    SAVED("saved", "Saved", "bookmark", requiresAuth = true),
     PROFILE("profile", "Profile", "account_circle", requiresAuth = true),
     OPTIONS("options", "Options", "tune", requiresAuth = true),
     ABOUT("about", "About", "info", requiresAuth = false),
     LOGIN("login", "Login", "lock", requiresAuth = false),
     REGISTER("register", "Register", "person_add", requiresAuth = false),
-    PEOPLE("people", "People", "group", "/people", requiresAuth = false),
-    TRENDING("trending", "Trending", "trending_up", "/trending", requiresAuth = false),
-    DISCOVER("discover", "Discover", "language", "/discover", requiresAuth = false);
+    PEOPLE("people", "People", "group", requiresAuth = false),
+    TRENDING("trending", "Trending", "trending_up", requiresAuth = false),
+    DISCOVER("discover", "Discover", "language", requiresAuth = false);
 
     val parentBottomSection: SidebarSection
         get() = when (this) {

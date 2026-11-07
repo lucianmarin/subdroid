@@ -1,9 +1,5 @@
 package com.lucianmarin.sub.ui.theme
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -13,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,16 +17,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -40,7 +31,6 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,17 +43,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lucianmarin.sub.R
@@ -83,10 +66,6 @@ enum class ThemeMode(val id: String, val label: String) {
 val Route159FontFamily = FontFamily(
     Font(R.font.route159_regular, FontWeight.Normal),
     Font(R.font.route159_bold, FontWeight.Bold)
-)
-
-val HackFontFamily = FontFamily(
-    Font(R.font.hack_regular, FontWeight.Normal)
 )
 
 val MaterialSymbolsFontFamily = FontFamily(
@@ -140,11 +119,6 @@ val DarkSubPalette = SubPalette(
 val LocalSubPalette = staticCompositionLocalOf { LightSubPalette }
 
 object SubTheme {
-    val colors: SubPalette
-        @Composable
-        @ReadOnlyComposable
-        get() = LocalSubPalette.current
-
     val background: Color
         @Composable
         @ReadOnlyComposable
@@ -301,15 +275,6 @@ fun SubDivider(modifier: Modifier = Modifier) {
     )
 }
 
-@Composable
-fun SubVerticalDivider(modifier: Modifier = Modifier) {
-    VerticalDivider(
-        modifier = modifier.fillMaxHeight(),
-        thickness = 1.dp,
-        color = SubTheme.whitesmoke
-    )
-}
-
 /**
  * Native Android pull-to-refresh ScrollView matching `RefreshableScrollView` in `../macreply`.
  */
@@ -363,51 +328,6 @@ fun SubPullToRefreshColumn(
                 .verticalScroll(rememberScrollState()),
             content = content
         )
-    }
-}
-
-/**
- * Diffs a freshly fetched list against the currently displayed list by both key and content (`equals`),
- * updating existing items in-place immediately and inserting brand-new items one by one with a 200ms delay.
- */
-suspend fun <T, K> applyDiffedFeedUpdate(
-    oldList: List<T>,
-    newList: List<T>,
-    keySelector: (T) -> K,
-    onUpdate: (List<T>) -> Unit,
-    delayMillis: Long = 200L
-) {
-    if (oldList.isEmpty()) {
-        onUpdate(newList)
-        return
-    }
-    val oldByKey = oldList.associateBy(keySelector)
-    val newIndices = newList.indices.filter { idx ->
-        keySelector(newList[idx]) !in oldByKey
-    }
-    val hasModifiedOrRemoved = oldList.size != newList.size - newIndices.size ||
-        newList.any { item ->
-            val oldItem = oldByKey[keySelector(item)]
-            oldItem != null && oldItem != item
-        }
-
-    if (newIndices.isEmpty()) {
-        if (hasModifiedOrRemoved || oldList != newList) {
-            onUpdate(newList)
-        }
-        return
-    }
-
-    val newIndexSet = newIndices.toSet()
-    if (hasModifiedOrRemoved) {
-        onUpdate(newList.filterIndexed { idx, _ -> idx !in newIndexSet })
-    }
-
-    val revealedIndices = mutableSetOf<Int>()
-    for (idx in newIndices.reversed()) {
-        delay(delayMillis)
-        revealedIndices.add(idx)
-        onUpdate(newList.filterIndexed { i, _ -> i !in newIndexSet || i in revealedIndices })
     }
 }
 
@@ -485,94 +405,6 @@ fun <T> SubMenuHeader(
                     }
                 }
             }
-        }
-    }
-}
-
-
-/**
- * Matches `SubTextField` in `../macreply/Sources/Macreply/Views/OptionsView.swift` and `style.sass` `input`.
- */
-@Composable
-fun SubTextField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    placeholder: String = "",
-    error: String? = null,
-    isPassword: Boolean = false,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    imeAction: ImeAction = ImeAction.Next,
-    onImeAction: (() -> Unit)? = null
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            text = label,
-            fontFamily = Route159FontFamily,
-            fontWeight = FontWeight.Normal,
-            fontSize = 12.sp,
-            lineHeight = 15.sp,
-            color = SubTheme.gray
-        )
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = true,
-            textStyle = TextStyle(
-                fontFamily = Route159FontFamily,
-                fontWeight = FontWeight.Normal,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = SubTheme.primary
-            ),
-            cursorBrush = SolidColor(SubTheme.accent),
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = if (isPassword) KeyboardType.Password else keyboardType,
-                imeAction = imeAction
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { onImeAction?.invoke() },
-                onGo = { onImeAction?.invoke() },
-                onSend = { onImeAction?.invoke() },
-                onNext = { onImeAction?.invoke() }
-            ),
-            decorationBox = { innerTextField ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(SubTheme.whitesmoke)
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (value.isEmpty() && placeholder.isNotEmpty()) {
-                        Text(
-                            text = placeholder,
-                            fontFamily = Route159FontFamily,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            color = SubTheme.gray
-                        )
-                    }
-                    innerTextField()
-                }
-            }
-        )
-        if (!error.isNullOrBlank()) {
-            Text(
-                text = error,
-                fontFamily = Route159FontFamily,
-                fontWeight = FontWeight.Normal,
-                fontSize = 13.sp,
-                lineHeight = 15.sp,
-                color = SubTheme.alert
-            )
         }
     }
 }

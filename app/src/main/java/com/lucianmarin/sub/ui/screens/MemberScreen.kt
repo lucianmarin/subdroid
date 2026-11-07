@@ -1,18 +1,14 @@
 package com.lucianmarin.sub.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +30,6 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lucianmarin.sub.model.PaginatedEntriesResponse
 import com.lucianmarin.sub.model.SidebarSection
 import com.lucianmarin.sub.model.SubEntry
 import com.lucianmarin.sub.model.SubUser
@@ -43,7 +38,6 @@ import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubDivider
 import com.lucianmarin.sub.ui.theme.SubPullToRefreshColumn
 import com.lucianmarin.sub.ui.theme.SubTheme
-import com.lucianmarin.sub.ui.theme.applyDiffedFeedUpdate
 import com.lucianmarin.sub.util.ContentParser
 import kotlinx.coroutines.launch
 
@@ -61,32 +55,19 @@ fun MemberScreen(
     val scope = rememberCoroutineScope()
     val pageSize = 16
 
-    val cleanUsername = username.lowercase()
-    val memberCacheKey = remember(cleanUsername) { viewModel.api.endpointKey("/$cleanUsername") }
-    val postsCacheKey = remember(cleanUsername) { viewModel.api.endpointKey("/$cleanUsername/posts") }
-
-    val initialCachedMember = remember(cleanUsername) {
-        viewModel.storage.getCachedFeed(memberCacheKey, SubUser.serializer())
-    }
-    val initialCachedPosts = remember(cleanUsername) {
-        viewModel.storage.getCachedFeed(postsCacheKey, PaginatedEntriesResponse.serializer())
-    }
-
-    var member by remember(username) { mutableStateOf(initialCachedMember) }
-    var entries by remember(username) { mutableStateOf(initialCachedPosts?.entries ?: emptyList()) }
-    var isFollowing by remember(username) { mutableStateOf(initialCachedMember?.followed ?: false) }
-    var followsViewer by remember(username) { mutableStateOf(initialCachedMember?.follows ?: false) }
+    var member by remember(username) { mutableStateOf<SubUser?>(null) }
+    var entries by remember(username) { mutableStateOf<List<SubEntry>>(emptyList()) }
+    var isFollowing by remember(username) { mutableStateOf(false) }
+    var followsViewer by remember(username) { mutableStateOf(false) }
     var currentPage by remember(username) { mutableIntStateOf(1) }
-    var canLoadMore by remember(username) { mutableStateOf((initialCachedPosts?.entries?.size ?: 0) >= pageSize) }
-    var isLoadingDetails by remember(username) { mutableStateOf(initialCachedMember == null) }
-    var isLoadingPosts by remember(username) { mutableStateOf(initialCachedPosts == null) }
+    var canLoadMore by remember(username) { mutableStateOf(false) }
+    var isLoadingDetails by remember(username) { mutableStateOf(false) }
+    var isLoadingPosts by remember(username) { mutableStateOf(false) }
     var isLoadingMore by remember(username) { mutableStateOf(false) }
     var loadMoreError by remember(username) { mutableStateOf(false) }
     var errorMessage by remember(username) { mutableStateOf<String?>(null) }
 
     suspend fun loadMember() {
-        val oldList = entries
-
         isLoadingDetails = member == null
         isLoadingPosts = entries.isEmpty()
         errorMessage = null
@@ -98,7 +79,6 @@ fun MemberScreen(
             isFollowing = fetchedMember.followed
             followsViewer = fetchedMember.follows
             isLoadingDetails = false
-            viewModel.storage.setCachedFeed(memberCacheKey, fetchedMember, SubUser.serializer())
 
             if (uiState.currentUser?.username?.equals(fetchedMember.username, ignoreCase = true) == true) {
                 viewModel.updateCurrentUser(
@@ -111,16 +91,10 @@ fun MemberScreen(
                 username = username,
                 page = 1
             )
+            entries = postsResponse.entries
             currentPage = postsResponse.page
             canLoadMore = postsResponse.entries.size >= pageSize
-            viewModel.storage.setCachedFeed(postsCacheKey, postsResponse, PaginatedEntriesResponse.serializer())
             isLoadingPosts = false
-            applyDiffedFeedUpdate(
-                oldList = oldList,
-                newList = postsResponse.entries,
-                keySelector = { it.id },
-                onUpdate = { entries = it }
-            )
         } catch (err: Exception) {
             errorMessage = err.message ?: "Unable to load @$username"
             isLoadingDetails = false

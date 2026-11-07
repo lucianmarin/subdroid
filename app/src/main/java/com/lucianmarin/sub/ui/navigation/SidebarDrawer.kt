@@ -118,8 +118,7 @@ private fun SidebarIconButton(
         SubHeroIcon(
             name = iconName,
             tint = iconColor,
-            size = 18.dp,
-            strokeWidthDp = 2.dp
+            size = 18.dp
         )
 
         if (badgeText != null) {

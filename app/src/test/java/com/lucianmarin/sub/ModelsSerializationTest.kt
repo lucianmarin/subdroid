@@ -1,14 +1,13 @@
 package com.lucianmarin.sub
 
 import com.lucianmarin.sub.model.AuthResponse
-import com.lucianmarin.sub.model.FeedResponse
 import com.lucianmarin.sub.model.MemberResponse
-import com.lucianmarin.sub.model.MessagesResponse
+import com.lucianmarin.sub.model.PaginatedChatsResponse
+import com.lucianmarin.sub.model.PaginatedEntriesResponse
 import com.lucianmarin.sub.model.ReplyDetailResponse
 import com.lucianmarin.sub.model.SubNotifications
 import com.lucianmarin.sub.network.APIClient
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -57,8 +56,8 @@ class ModelsSerializationTest {
         assertNotNull(user)
         assertEquals("lucian", user?.username)
         assertEquals("Lucian Marin", user?.fullName)
-        assertEquals("☕", user?.status)
-        assertEquals("Designer & developer", user?.bio)
+        assertEquals("☕", user?.emoji)
+        assertEquals("Designer & developer", user?.description)
         assertEquals("Bucharest, Romania", user?.location)
     }
 
@@ -101,20 +100,19 @@ class ModelsSerializationTest {
             }
         """.trimIndent()
 
-        val response = json.decodeFromString(FeedResponse.serializer(), payload)
+        val response = json.decodeFromString(PaginatedEntriesResponse.serializer(), payload)
         assertEquals(1, response.entries.size)
-        assertFalse(response.hasNext)
 
         val entry = response.entries.first()
         assertEquals(9876, entry.id)
-        assertEquals("Testing @lucian #subreply /42", entry.text)
-        assertEquals("2m", entry.relativeTime)
+        assertEquals("Testing @lucian #subreply /42", entry.content)
+        assertEquals("2m", entry.timestamp)
         assertEquals(2, entry.replyCount)
-        assertTrue(entry.isBookmarked)
-        assertEquals("lucian", entry.user.username)
-        assertEquals("☕", entry.user.status)
+        assertTrue(entry.saved)
+        assertEquals("lucian", entry.createdBy.username)
+        assertEquals("☕", entry.createdBy.emoji)
         assertEquals(42, entry.parent?.id)
-        assertEquals("Original post", entry.parent?.text)
+        assertEquals("Original post", entry.parent?.content)
     }
 
 
@@ -143,10 +141,10 @@ class ModelsSerializationTest {
         """.trimIndent()
 
         val replyResp = json.decodeFromString(ReplyDetailResponse.serializer(), replyPayload)
-        assertEquals(100, replyResp.parent?.id)
-        assertEquals("Root thread content", replyResp.parent?.text)
-        assertEquals(1, replyResp.entries.size)
-        assertEquals("Child reply", replyResp.entries.first().text)
+        assertEquals(100, replyResp.entry.id)
+        assertEquals("Root thread content", replyResp.entry.content)
+        assertEquals(1, replyResp.kids.size)
+        assertEquals("Child reply", replyResp.kids.first().content)
 
         val memberPayload = """
             {
@@ -162,9 +160,9 @@ class ModelsSerializationTest {
         """.trimIndent()
         val memberResp = json.decodeFromString(MemberResponse.serializer(), memberPayload)
         assertEquals("lucian", memberResp.user?.username)
-        assertEquals("Building Subreply", memberResp.user?.bio)
-        assertTrue(memberResp.user?.isFollowing == true)
-        assertTrue(memberResp.user?.followsMe == true)
+        assertEquals("Building Subreply", memberResp.user?.description)
+        assertTrue(memberResp.user?.followed == true)
+        assertTrue(memberResp.user?.follows == true)
 
         val messagesPayload = """
             {
@@ -181,12 +179,10 @@ class ModelsSerializationTest {
               ]
             }
         """.trimIndent()
-        val msgResp = json.decodeFromString(MessagesResponse.serializer(), messagesPayload)
-        assertEquals(1, msgResp.messages.size)
-        assertEquals("Hey there!", msgResp.messages.first().text)
-        val partners = msgResp.partnersFor("lucian")
-        assertEquals(1, partners.size)
-        assertEquals("alice", partners.first().username)
+        val msgResp = json.decodeFromString(PaginatedChatsResponse.serializer(), messagesPayload)
+        assertEquals(1, msgResp.entries.size)
+        assertEquals("Hey there!", msgResp.entries.first().content)
+        assertEquals("alice", msgResp.entries.first().createdBy.username)
 
         val notifPayload = """{"followers": 1, "mentions": 2, "replies": 3, "messages": 4}"""
         val notifs = json.decodeFromString(SubNotifications.serializer(), notifPayload)

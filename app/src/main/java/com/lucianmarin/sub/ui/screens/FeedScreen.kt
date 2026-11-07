@@ -1,14 +1,8 @@
 package com.lucianmarin.sub.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lucianmarin.sub.model.PaginatedEntriesResponse
 import com.lucianmarin.sub.model.SidebarSection
 import com.lucianmarin.sub.model.SubEntry
 import com.lucianmarin.sub.state.AppStateViewModel
@@ -30,7 +23,6 @@ import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubDivider
 import com.lucianmarin.sub.ui.theme.SubPullToRefreshColumn
 import com.lucianmarin.sub.ui.theme.SubTheme
-import com.lucianmarin.sub.ui.theme.applyDiffedFeedUpdate
 import kotlinx.coroutines.launch
 
 /**
@@ -58,20 +50,10 @@ fun FeedStreamScreen(
         else -> "feed"
     }
 
-    fun cacheUrlKey(query: String?): String =
-        viewModel.api.endpointKey(
-            path = endpointPath(),
-            queryParams = if (!query.isNullOrEmpty()) mapOf("q" to query) else emptyMap()
-        )
-
-    val initialCached = remember(section) {
-        viewModel.storage.getCachedFeed(cacheUrlKey(null), PaginatedEntriesResponse.serializer())
-    }
-
-    var entries by remember(section) { mutableStateOf(initialCached?.entries ?: emptyList()) }
+    var entries by remember(section) { mutableStateOf<List<SubEntry>>(emptyList()) }
     var currentPage by remember(section) { mutableIntStateOf(1) }
-    var canLoadMore by remember(section) { mutableStateOf((initialCached?.entries?.size ?: 0) >= pageSize) }
-    var isLoading by remember(section) { mutableStateOf(initialCached == null) }
+    var canLoadMore by remember(section) { mutableStateOf(false) }
+    var isLoading by remember(section) { mutableStateOf(false) }
     var isLoadingMore by remember(section) { mutableStateOf(false) }
     var loadMoreError by remember(section) { mutableStateOf(false) }
     var errorMessage by remember(section) { mutableStateOf<String?>(null) }
@@ -84,13 +66,6 @@ fun FeedStreamScreen(
         } else {
             null
         }
-        val urlKey = cacheUrlKey(queryParam)
-        val cached = viewModel.storage.getCachedFeed(urlKey, PaginatedEntriesResponse.serializer())
-        if (entries.isEmpty() && cached != null) {
-            entries = cached.entries
-            canLoadMore = cached.entries.size >= pageSize
-        }
-        val oldList = entries
 
         isLoading = true
         errorMessage = null
@@ -102,15 +77,9 @@ fun FeedStreamScreen(
                 page = 1,
                 query = queryParam
             )
+            entries = res.entries
             canLoadMore = res.entries.size >= pageSize
-            viewModel.storage.setCachedFeed(urlKey, res, PaginatedEntriesResponse.serializer())
             isLoading = false
-            applyDiffedFeedUpdate(
-                oldList = oldList,
-                newList = res.entries,
-                keySelector = { it.id },
-                onUpdate = { entries = it }
-            )
             if (section == SidebarSection.MENTIONS || section == SidebarSection.REPLIES) {
                 viewModel.refreshNotifications()
             }
@@ -152,12 +121,6 @@ fun FeedStreamScreen(
         return try {
             val newEntry = viewModel.api.postThread(content = content)
             entries = listOf(newEntry) + entries
-            val urlKey = cacheUrlKey(null)
-            viewModel.storage.setCachedFeed(
-                urlKey,
-                PaginatedEntriesResponse(page = 1, entries = entries.take(pageSize)),
-                PaginatedEntriesResponse.serializer()
-            )
             Result.success(Unit)
         } catch (err: Exception) {
             Result.failure(err)

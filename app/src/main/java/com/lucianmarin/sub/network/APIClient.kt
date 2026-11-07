@@ -2,7 +2,6 @@ package com.lucianmarin.sub.network
 
 import com.lucianmarin.sub.model.ActionStatusResponse
 import com.lucianmarin.sub.model.AuthResponse
-import com.lucianmarin.sub.model.MemberFeedResponse
 import com.lucianmarin.sub.model.MemberResponse
 import com.lucianmarin.sub.model.PaginatedChatsResponse
 import com.lucianmarin.sub.model.PaginatedEntriesResponse
@@ -61,9 +60,6 @@ class APIClient(
             }
         }
     }
-
-    fun endpointKey(path: String, queryParams: Map<String, String?> = emptyMap()): String =
-        buildUrl(path, queryParams).toString()
 
     private fun buildUrl(path: String, queryParams: Map<String, String?> = emptyMap()): URL {
         val cleanBase = normalizeBaseUrl(baseUrl)
@@ -388,25 +384,6 @@ class APIClient(
             queryParams = params
         )
     }
-
-    suspend fun fetchMember(
-        username: String,
-        page: Int = 1,
-        cachedMember: SubUser? = null
-    ): MemberFeedResponse {
-        val member = if (page == 1 || cachedMember == null) {
-            fetchMemberDetail(username)
-        } else {
-            cachedMember
-        }
-        val postsResp = fetchMemberPosts(username = username, page = page)
-        return MemberFeedResponse(
-            page = postsResp.page,
-            member = member,
-            entries = postsResp.entries
-        )
-    }
-
 
     suspend fun followUser(username: String): ActionStatusResponse =
         request(

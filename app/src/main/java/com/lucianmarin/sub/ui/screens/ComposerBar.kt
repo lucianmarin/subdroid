@@ -20,7 +20,6 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
@@ -43,13 +42,16 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -272,7 +274,6 @@ fun PlaceholderBannerView(
     isAuthPrompt: Boolean = false,
     onLoginClick: (() -> Unit)? = null,
     onRegisterClick: (() -> Unit)? = null,
-    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -289,54 +290,42 @@ fun PlaceholderBannerView(
                         colors = listOf(SubTheme.whitesmoke, SubTheme.background)
                     )
                 )
-                .then(
-                    if (onClick != null && !isAuthPrompt) {
-                        Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onClick
-                        )
-                    } else {
-                        Modifier
-                    }
-                )
                 .padding(horizontal = TopFormInnerHorizontalPadding, vertical = TopFormInnerVerticalPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (isAuthPrompt) {
+                val primaryStyle = TextLinkStyles(style = SpanStyle(color = SubTheme.primary))
                 val annotated = buildAnnotatedString {
-                    pushStringAnnotation(tag = "AUTH", annotation = "login")
-                    withStyle(SpanStyle(color = SubTheme.primary)) {
+                    withLink(
+                        LinkAnnotation.Clickable(
+                            tag = "login",
+                            styles = primaryStyle,
+                            linkInteractionListener = { onLoginClick?.invoke() }
+                        )
+                    ) {
                         append("Login")
                     }
-                    pop()
                     withStyle(SpanStyle(color = SubTheme.gray)) {
                         append(" or ")
                     }
-                    pushStringAnnotation(tag = "AUTH", annotation = "register")
-                    withStyle(SpanStyle(color = SubTheme.primary)) {
+                    withLink(
+                        LinkAnnotation.Clickable(
+                            tag = "register",
+                            styles = primaryStyle,
+                            linkInteractionListener = { onRegisterClick?.invoke() }
+                        )
+                    ) {
                         append("register")
                     }
-                    pop()
                     withStyle(SpanStyle(color = SubTheme.gray)) {
                         append(" $text")
                     }
                 }
-                @Suppress("DEPRECATION")
-                ClickableText(
+                Text(
                     text = annotated,
                     style = topFormTextStyle(SubTheme.gray),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    onClick = { offset ->
-                        annotated.getStringAnnotations("AUTH", offset, offset)
-                            .firstOrNull()?.let { ann ->
-                                when (ann.item) {
-                                    "login" -> onLoginClick?.invoke()
-                                    "register" -> onRegisterClick?.invoke()
-                                }
-                            }
-                    }
+                    overflow = TextOverflow.Ellipsis
                 )
             } else {
                 Text(

@@ -204,7 +204,7 @@ private fun ProfileFormView(
     var lastName by remember(user) { mutableStateOf(user?.lastName ?: "") }
     var emoji by remember(user) { mutableStateOf(user?.emoji ?: "") }
     var birthday by remember(user) { mutableStateOf(user?.birthday ?: "") }
-    var location by remember(user) { mutableStateOf(user?.cityLabel ?: "") }
+    var location by remember(user) { mutableStateOf(user?.location ?: "") }
     var link by remember(user) { mutableStateOf(user?.link ?: "") }
     var description by remember(user) { mutableStateOf(user?.description ?: "") }
 

@@ -1,6 +1,5 @@
 package com.lucianmarin.sub.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -8,13 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -28,10 +23,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lucianmarin.sub.model.PaginatedChatsResponse
 import com.lucianmarin.sub.model.SidebarSection
 import com.lucianmarin.sub.model.SubChat
 import com.lucianmarin.sub.model.SubUser
@@ -40,7 +33,6 @@ import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubDivider
 import com.lucianmarin.sub.ui.theme.SubPullToRefreshColumn
 import com.lucianmarin.sub.ui.theme.SubTheme
-import com.lucianmarin.sub.ui.theme.applyDiffedFeedUpdate
 import kotlinx.coroutines.launch
 
 /**
@@ -56,22 +48,16 @@ fun MessagesInboxScreen(
     val scope = rememberCoroutineScope()
     val pageSize = 16
 
-    val inboxCacheKey = remember { viewModel.api.endpointKey("/messages") }
-    val initialCached = remember {
-        viewModel.storage.getCachedFeed(inboxCacheKey, PaginatedChatsResponse.serializer())
-    }
-
-    var chats by remember { mutableStateOf(initialCached?.entries ?: emptyList()) }
+    var chats by remember { mutableStateOf<List<SubChat>>(emptyList()) }
     var currentPage by remember { mutableIntStateOf(1) }
-    var canLoadMore by remember { mutableStateOf((initialCached?.entries?.size ?: 0) >= pageSize) }
-    var isLoading by remember { mutableStateOf(initialCached == null) }
+    var canLoadMore by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var loadMoreError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     suspend fun reloadChats() {
         if (!uiState.isAuthenticated) return
-        val oldList = chats
 
         isLoading = chats.isEmpty()
         errorMessage = null
@@ -79,15 +65,9 @@ fun MessagesInboxScreen(
         currentPage = 1
         try {
             val res = viewModel.api.fetchMessagesInbox(page = 1)
+            chats = res.entries
             canLoadMore = res.entries.size >= pageSize
-            viewModel.storage.setCachedFeed(inboxCacheKey, res, PaginatedChatsResponse.serializer())
             isLoading = false
-            applyDiffedFeedUpdate(
-                oldList = oldList,
-                newList = res.entries,
-                keySelector = { it.id },
-                onUpdate = { chats = it }
-            )
             viewModel.refreshNotifications()
         } catch (err: Exception) {
             errorMessage = err.message ?: "Unable to load messages"
@@ -267,17 +247,11 @@ fun ConversationScreen(
     val scope = rememberCoroutineScope()
     val pageSize = 16
 
-    val cleanUsername = username.lowercase()
-    val convCacheKey = remember(cleanUsername) { viewModel.api.endpointKey("/$cleanUsername/message") }
-    val initialCached = remember(cleanUsername) {
-        viewModel.storage.getCachedFeed(convCacheKey, PaginatedChatsResponse.serializer())
-    }
-
-    var messages by remember(username) { mutableStateOf(initialCached?.entries ?: emptyList()) }
-    var isBlockedFromServer by remember(username) { mutableStateOf(initialCached?.blocked) }
+    var messages by remember(username) { mutableStateOf<List<SubChat>>(emptyList()) }
+    var isBlockedFromServer by remember(username) { mutableStateOf<Boolean?>(null) }
     var currentPage by remember(username) { mutableIntStateOf(1) }
-    var canLoadMore by remember(username) { mutableStateOf((initialCached?.entries?.size ?: 0) >= pageSize) }
-    var isLoading by remember(username) { mutableStateOf(initialCached == null) }
+    var canLoadMore by remember(username) { mutableStateOf(false) }
+    var isLoading by remember(username) { mutableStateOf(false) }
     var isLoadingMore by remember(username) { mutableStateOf(false) }
     var loadMoreError by remember(username) { mutableStateOf(false) }
     var errorMessage by remember(username) { mutableStateOf<String?>(null) }
@@ -301,7 +275,6 @@ fun ConversationScreen(
 
     suspend fun loadConversation() {
         if (!uiState.isAuthenticated) return
-        val oldList = messages
 
         isLoading = messages.isEmpty()
         errorMessage = null
@@ -310,19 +283,13 @@ fun ConversationScreen(
         clearState = ClearConversationState.IDLE
         try {
             val result = viewModel.api.fetchConversation(username = username, page = 1)
+            messages = result.entries
             canLoadMore = result.entries.size >= pageSize
             if (result.blocked != null) {
                 isBlockedFromServer = result.blocked
             }
-            viewModel.storage.setCachedFeed(convCacheKey, result, PaginatedChatsResponse.serializer())
             viewModel.setActiveConversationHasMessages(result.entries.isNotEmpty())
             isLoading = false
-            applyDiffedFeedUpdate(
-                oldList = oldList,
-                newList = result.entries,
-                keySelector = { it.id },
-                onUpdate = { messages = it }
-            )
             viewModel.refreshNotifications()
         } catch (err: Exception) {
             errorMessage = err.message ?: "Unable to load conversation"
@@ -359,15 +326,6 @@ fun ConversationScreen(
                 val hasBackward = messages.any { it.createdBy.username.lowercase() == username.lowercase() }
                 isBlockedFromServer = !hasBackward
             }
-            viewModel.storage.setCachedFeed(
-                convCacheKey,
-                PaginatedChatsResponse(
-                    page = 1,
-                    blocked = isBlockedFromServer,
-                    entries = messages.take(pageSize)
-                ),
-                PaginatedChatsResponse.serializer()
-            )
             clearState = ClearConversationState.IDLE
             Result.success(Unit)
         } catch (err: Exception) {
@@ -383,11 +341,6 @@ fun ConversationScreen(
                 if (res.status == "cleared") {
                     clearState = ClearConversationState.CLEARED
                     messages = emptyList()
-                    viewModel.storage.setCachedFeed(
-                        convCacheKey,
-                        PaginatedChatsResponse(page = 1, blocked = false, entries = emptyList()),
-                        PaginatedChatsResponse.serializer()
-                    )
                     viewModel.setActiveConversationHasMessages(false)
                 } else {
                     clearState = ClearConversationState.RETRY
@@ -496,7 +449,6 @@ private fun ConversationMessageRowView(
     currentUser: SubUser?,
     viewModel: AppStateViewModel
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val isOutgoing = currentUser != null && currentUser == message.createdBy
     var unsendState by remember(message.id) { mutableStateOf(UnsendButtonState.IDLE) }

@@ -197,7 +197,6 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
     fun logout() {
         storage.setAuthToken(null)
         storage.setSavedUser(null)
-        storage.clearFeedCache()
         api.authToken = null
         lastKnownActivity = 0
         lastKnownMessages = 0
@@ -386,11 +385,11 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
         val user = _uiState.value.currentUser ?: return
         viewModelScope.launch {
             try {
-                val resp = api.fetchMember(username = user.username, page = 1, cachedMember = user)
-                val updated = resp.member.copy(
-                    email = if (resp.member.email.isEmpty()) user.email else resp.member.email,
-                    phone = if (resp.member.phone.isEmpty()) user.phone else resp.member.phone,
-                    social = if (resp.member.social.isEmpty()) user.social else resp.member.social
+                val member = api.fetchMemberDetail(username = user.username)
+                val updated = member.copy(
+                    email = if (member.email.isEmpty()) user.email else member.email,
+                    phone = if (member.phone.isEmpty()) user.phone else member.phone,
+                    social = if (member.social.isEmpty()) user.social else member.social
                 )
                 updateCurrentUser(updated)
             } catch (e: APIException) {

@@ -51,14 +51,13 @@ enum class LoginTab(val label: String) {
 @Composable
 fun LoginScreen(
     viewModel: AppStateViewModel,
-    modifier: Modifier = Modifier,
-    initialTab: LoginTab? = null
+    modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     var activeTab by remember {
         mutableStateOf(
-            initialTab ?: if (uiState.selectedSection == SidebarSection.REGISTER) {
+            if (uiState.selectedSection == SidebarSection.REGISTER) {
                 LoginTab.REGISTER
             } else {
                 LoginTab.LOGIN
@@ -257,21 +256,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(72.dp))
     }
-}
-
-/**
- * Matches `templates/pages/register.html` and `Macreply/Views/AuthViews.swift` (`RegisterView`) 1:1.
- */
-@Composable
-fun RegisterScreen(
-    viewModel: AppStateViewModel,
-    modifier: Modifier = Modifier
-) {
-    LoginScreen(
-        viewModel = viewModel,
-        modifier = modifier,
-        initialTab = LoginTab.REGISTER
-    )
 }
 
 @Composable

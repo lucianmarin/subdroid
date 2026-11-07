@@ -8,12 +8,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.lucianmarin.sub.model.SubMember
+import com.lucianmarin.sub.model.SubUser
 import com.lucianmarin.sub.network.APIClient
 import com.lucianmarin.sub.ui.theme.ThemeMode
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "subdroid_settings")
 
@@ -21,7 +19,6 @@ class SessionStorage(private val context: Context) {
 
     companion object {
         private const val SECURE_PREFS_NAME = "subdroid_secure_session"
-        private const val FEED_CACHE_PREFS_NAME = "subdroid_feed_cache"
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_SAVED_USER_JSON = "saved_user_json"
 
@@ -33,37 +30,6 @@ class SessionStorage(private val context: Context) {
 
     private val securePrefs: SharedPreferences by lazy {
         context.getSharedPreferences(SECURE_PREFS_NAME, Context.MODE_PRIVATE)
-    }
-
-    private val feedCachePrefs: SharedPreferences by lazy {
-        context.getSharedPreferences(FEED_CACHE_PREFS_NAME, Context.MODE_PRIVATE)
-    }
-
-    private val memoryFeedCache = java.util.concurrent.ConcurrentHashMap<String, String>()
-
-    fun <T> getCachedFeed(urlKey: String, serializer: kotlinx.serialization.KSerializer<T>): T? {
-        val raw = memoryFeedCache[urlKey] ?: feedCachePrefs.getString(urlKey, null) ?: return null
-        return try {
-            val decoded = APIClient.json.decodeFromString(serializer, raw)
-            memoryFeedCache[urlKey] = raw
-            decoded
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    fun <T> setCachedFeed(urlKey: String, value: T, serializer: kotlinx.serialization.KSerializer<T>) {
-        try {
-            val encoded = APIClient.json.encodeToString(serializer, value)
-            memoryFeedCache[urlKey] = encoded
-            feedCachePrefs.edit().putString(urlKey, encoded).apply()
-        } catch (_: Exception) {
-        }
-    }
-
-    fun clearFeedCache() {
-        memoryFeedCache.clear()
-        feedCachePrefs.edit().clear().apply()
     }
 
     fun getAuthToken(): String? =
@@ -79,22 +45,22 @@ class SessionStorage(private val context: Context) {
         editor.apply()
     }
 
-    fun getSavedUser(): SubMember? {
+    fun getSavedUser(): SubUser? {
         val raw = securePrefs.getString(KEY_SAVED_USER_JSON, null) ?: return null
         return try {
-            APIClient.json.decodeFromString(SubMember.serializer(), raw)
+            APIClient.json.decodeFromString(SubUser.serializer(), raw)
         } catch (_: Exception) {
             null
         }
     }
 
-    fun setSavedUser(user: SubMember?) {
+    fun setSavedUser(user: SubUser?) {
         val editor = securePrefs.edit()
         if (user == null) {
             editor.remove(KEY_SAVED_USER_JSON)
         } else {
             try {
-                val encoded = APIClient.json.encodeToString(SubMember.serializer(), user)
+                val encoded = APIClient.json.encodeToString(SubUser.serializer(), user)
                 editor.putString(KEY_SAVED_USER_JSON, encoded)
             } catch (_: Exception) {
             }
@@ -102,15 +68,10 @@ class SessionStorage(private val context: Context) {
         editor.apply()
     }
 
-    val themeModeFlow: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
-        ThemeMode.fromId(prefs[PREF_THEME_MODE] ?: ThemeMode.SYSTEM.id)
+    suspend fun getThemeMode(): ThemeMode {
+        val id = context.dataStore.data.first()[PREF_THEME_MODE] ?: ThemeMode.SYSTEM.id
+        return ThemeMode.fromId(id)
     }
-
-    val apiBaseUrlFlow: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[PREF_API_BASE_URL]?.takeIf { it.isNotBlank() } ?: APIClient.DEFAULT_BASE_URL
-    }
-
-    suspend fun getThemeMode(): ThemeMode = themeModeFlow.first()
 
     suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { prefs ->
@@ -118,7 +79,9 @@ class SessionStorage(private val context: Context) {
         }
     }
 
-    suspend fun getApiBaseUrl(): String = apiBaseUrlFlow.first()
+    suspend fun getApiBaseUrl(): String =
+        context.dataStore.data.first()[PREF_API_BASE_URL]?.takeIf { it.isNotBlank() }
+            ?: APIClient.DEFAULT_BASE_URL
 
     suspend fun setApiBaseUrl(url: String) {
         context.dataStore.edit { prefs ->
