@@ -388,11 +388,7 @@ fun <T> SubMenuHeader(
             items.forEach { (label, value) ->
                 val isActive = value == selected
                 val count = badgeCount?.invoke(value) ?: 0
-                val textColor = when {
-                    isActive -> SubTheme.primary
-                    count > 0 -> SubTheme.alert
-                    else -> SubTheme.silver
-                }
+                val textColor = if (isActive) SubTheme.primary else SubTheme.silver
                 Box(
                     modifier = Modifier.clickable(
                         interactionSource = remember { MutableInteractionSource() },
