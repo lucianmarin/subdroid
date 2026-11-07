@@ -27,6 +27,7 @@ import com.lucianmarin.sub.model.SubEntry
 import com.lucianmarin.sub.state.AppStateViewModel
 import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubDivider
+import com.lucianmarin.sub.ui.theme.SubPullToRefreshColumn
 import com.lucianmarin.sub.ui.theme.SubTheme
 import kotlinx.coroutines.launch
 
@@ -152,11 +153,12 @@ fun FeedStreamScreen(
     }
 
 
-    Column(
+    SubPullToRefreshColumn(
+        onRefresh = {
+            reloadEntries()
+            viewModel.refreshNotifications()
+        },
         modifier = modifier
-            .fillMaxSize()
-            .background(SubTheme.background)
-            .verticalScroll(rememberScrollState())
     ) {
         // Section Top Header
         when (section) {

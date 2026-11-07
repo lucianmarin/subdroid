@@ -40,6 +40,7 @@ import com.lucianmarin.sub.model.SubUser
 import com.lucianmarin.sub.state.AppStateViewModel
 import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubDivider
+import com.lucianmarin.sub.ui.theme.SubPullToRefreshColumn
 import com.lucianmarin.sub.ui.theme.SubTheme
 import com.lucianmarin.sub.util.ContentParser
 import kotlinx.coroutines.launch
@@ -153,11 +154,12 @@ fun MemberScreen(
         loadMember()
     }
 
-    Column(
+    SubPullToRefreshColumn(
+        onRefresh = {
+            loadMember()
+            viewModel.refreshNotifications()
+        },
         modifier = modifier
-            .fillMaxSize()
-            .background(SubTheme.background)
-            .verticalScroll(rememberScrollState())
     ) {
         val user = member
         if (user != null) {

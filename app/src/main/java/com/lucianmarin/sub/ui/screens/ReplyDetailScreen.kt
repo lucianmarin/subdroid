@@ -24,6 +24,7 @@ import com.lucianmarin.sub.model.SubEntry
 import com.lucianmarin.sub.state.AppStateViewModel
 import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubDivider
+import com.lucianmarin.sub.ui.theme.SubPullToRefreshColumn
 import com.lucianmarin.sub.ui.theme.SubTheme
 
 /**
@@ -80,11 +81,12 @@ fun ReplyDetailScreen(
     }
 
 
-    Column(
+    SubPullToRefreshColumn(
+        onRefresh = {
+            loadDetail()
+            viewModel.refreshNotifications()
+        },
         modifier = modifier
-            .fillMaxSize()
-            .background(SubTheme.background)
-            .verticalScroll(rememberScrollState())
     ) {
         val focal = mainEntry
         if (focal != null) {
@@ -105,10 +107,14 @@ fun ReplyDetailScreen(
             }
 
             // Focal entry
+            val canDeleteFocalAsRecipient = ancestors.lastOrNull()?.let { parent ->
+                uiState.currentUser != null && uiState.currentUser == parent.createdBy
+            } ?: false
             EntryItemView(
                 entry = focal,
                 viewModel = viewModel,
-                isRootOverride = (ancestors.isEmpty() && focal.isRootThread)
+                isRootOverride = ancestors.isEmpty(),
+                canDeleteAsRecipient = canDeleteFocalAsRecipient
             )
             SubDivider()
 
@@ -144,17 +150,28 @@ fun ReplyDetailScreen(
             }
             SubDivider()
 
-            // Direct child replies indented by 30dp
-            val canDeleteKid = uiState.currentUser != null && uiState.currentUser == focal.createdBy
+            // Descendant threads (`templates/common/threads.html` & `Macreply/Views/ReplyDetailView.swift`)
+            val canDeleteDirectKid = uiState.currentUser != null && uiState.currentUser == focal.createdBy
             for (kid in kids) {
                 EntryItemView(
                     entry = kid,
                     viewModel = viewModel,
                     isRootOverride = false,
-                    canDeleteAsRecipient = canDeleteKid,
-                    modifier = Modifier.padding(start = 30.dp)
+                    canDeleteAsRecipient = canDeleteDirectKid
                 )
                 SubDivider()
+
+                val canDeleteNestedKid = uiState.currentUser != null && uiState.currentUser == kid.createdBy
+                for (nestedKid in kid.streamKids) {
+                    EntryItemView(
+                        entry = nestedKid,
+                        viewModel = viewModel,
+                        isRootOverride = false,
+                        canDeleteAsRecipient = canDeleteNestedKid,
+                        modifier = Modifier.padding(start = 30.dp)
+                    )
+                    SubDivider()
+                }
             }
         } else if (isLoading) {
             PlaceholderBannerView(

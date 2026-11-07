@@ -7,17 +7,22 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,11 +30,18 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +61,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lucianmarin.sub.R
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class ThemeMode(val id: String, val label: String) {
     SYSTEM("system", "System"),
@@ -287,6 +301,62 @@ fun SubVerticalDivider(modifier: Modifier = Modifier) {
         thickness = 1.dp,
         color = SubTheme.whitesmoke
     )
+}
+
+/**
+ * Native Android pull-to-refresh ScrollView matching `RefreshableScrollView` in `../macreply`.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SubPullToRefreshColumn(
+    onRefresh: suspend () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val pullState = rememberPullToRefreshState()
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            if (!isRefreshing) {
+                isRefreshing = true
+                scope.launch {
+                    val startMs = System.currentTimeMillis()
+                    try {
+                        onRefresh()
+                    } finally {
+                        val elapsedMs = System.currentTimeMillis() - startMs
+                        if (elapsedMs < 450L) {
+                            delay(450L - elapsedMs)
+                        }
+                        isRefreshing = false
+                    }
+                }
+            }
+        },
+        state = pullState,
+        modifier = modifier
+            .fillMaxSize()
+            .background(SubTheme.background),
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = pullState,
+                isRefreshing = isRefreshing,
+                containerColor = SubTheme.whitesmoke,
+                color = SubTheme.accent,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            content = content
+        )
+    }
 }
 
 /**

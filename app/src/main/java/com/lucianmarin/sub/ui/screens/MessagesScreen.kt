@@ -37,6 +37,7 @@ import com.lucianmarin.sub.model.SubUser
 import com.lucianmarin.sub.state.AppStateViewModel
 import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubDivider
+import com.lucianmarin.sub.ui.theme.SubPullToRefreshColumn
 import com.lucianmarin.sub.ui.theme.SubTheme
 import kotlinx.coroutines.launch
 
@@ -103,11 +104,11 @@ fun MessagesInboxScreen(
     }
 
 
-    Column(
+    SubPullToRefreshColumn(
+        onRefresh = {
+            reloadChats()
+        },
         modifier = modifier
-            .fillMaxSize()
-            .background(SubTheme.background)
-            .verticalScroll(rememberScrollState())
     ) {
         SectionSubtabsHeader(
             section = SidebarSection.MESSAGES,
@@ -364,11 +365,11 @@ fun ConversationScreen(
         }
     }
 
-    Column(
+    SubPullToRefreshColumn(
+        onRefresh = {
+            loadConversation()
+        },
         modifier = modifier
-            .fillMaxSize()
-            .background(SubTheme.background)
-            .verticalScroll(rememberScrollState())
     ) {
         if (isBlockedWaitingForResponse) {
             PlaceholderBannerView(

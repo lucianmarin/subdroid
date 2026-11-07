@@ -26,6 +26,7 @@ import com.lucianmarin.sub.model.SubUser
 import com.lucianmarin.sub.state.AppStateViewModel
 import com.lucianmarin.sub.ui.theme.Route159FontFamily
 import com.lucianmarin.sub.ui.theme.SubDivider
+import com.lucianmarin.sub.ui.theme.SubPullToRefreshColumn
 import com.lucianmarin.sub.ui.theme.SubTheme
 import kotlinx.coroutines.launch
 
@@ -144,11 +145,12 @@ fun PeopleListScreen(
     }
 
 
-    Column(
+    SubPullToRefreshColumn(
+        onRefresh = {
+            reloadUsers()
+            viewModel.refreshNotifications()
+        },
         modifier = modifier
-            .fillMaxSize()
-            .background(SubTheme.background)
-            .verticalScroll(rememberScrollState())
     ) {
         when (section) {
             SidebarSection.PEOPLE -> {
