@@ -84,6 +84,7 @@ val HackFontFamily = FontFamily(
 )
 
 val MaterialSymbolsFontFamily = FontFamily(
+    Font(R.font.material_symbols_rounded, FontWeight.Normal),
     Font(R.font.material_symbols_rounded, FontWeight.Medium)
 )
 

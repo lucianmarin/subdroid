@@ -89,6 +89,7 @@ fun SubMaterialSymbol(
     tint: Color,
     modifier: Modifier = Modifier,
     size: Dp = 18.dp,
+    fontWeight: FontWeight = FontWeight.Medium,
     animated: Boolean = false
 ) {
     val symbolLigature = remember(name) { SubIcons.materialSymbolFor(name) }
@@ -163,7 +164,8 @@ fun SubMaterialSymbol(
             modifier = Modifier.wrapContentSize(unbounded = true),
             style = TextStyle(
                 fontFamily = MaterialSymbolsFontFamily,
-                fontWeight = FontWeight.Medium,
+                fontWeight = fontWeight,
+                color = tint,
                 fontSize = fontSizeSp,
                 lineHeight = fontSizeSp,
                 textAlign = TextAlign.Center,
@@ -183,6 +185,7 @@ fun SubHeroIcon(
     tint: Color,
     modifier: Modifier = Modifier,
     size: Dp = 18.dp,
+    fontWeight: FontWeight = FontWeight.Medium,
     @Suppress("UNUSED_PARAMETER") strokeWidthDp: Dp = 2.dp,
     animated: Boolean = false
 ) {
@@ -191,6 +194,7 @@ fun SubHeroIcon(
         tint = tint,
         modifier = modifier,
         size = size,
+        fontWeight = fontWeight,
         animated = animated
     )
 }

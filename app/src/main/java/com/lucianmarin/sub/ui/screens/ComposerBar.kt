@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -353,6 +354,7 @@ fun PlaceholderBannerView(
                     name = SidebarSection.REPLIES.iconName,
                     tint = SubTheme.gray,
                     size = 16.dp,
+                    fontWeight = FontWeight.Normal,
                     modifier = Modifier.scale(scaleX = 1f, scaleY = -1f)
                 )
             }
