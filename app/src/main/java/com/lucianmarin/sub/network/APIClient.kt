@@ -47,6 +47,7 @@ class APIClient(
 
     companion object {
         const val DEFAULT_BASE_URL = "https://subreply.com/api"
+        const val DEFAULT_USER_AGENT = "Subreply/2.0 (Android)"
 
         val json = Json {
             ignoreUnknownKeys = true
@@ -211,7 +212,7 @@ class APIClient(
             connectTimeout = 15_000
             readTimeout = 15_000
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "Subdroid/1.0 (Android)")
+            setRequestProperty("User-Agent", DEFAULT_USER_AGENT)
             val token = authToken
             if (!token.isNullOrBlank()) {
                 setRequestProperty("Authorization", "Bearer $token")
