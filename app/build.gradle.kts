@@ -13,8 +13,8 @@ android {
     defaultConfig {
         applicationId = "com.lucianmarin.sub"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 6
+        targetSdk = 36
+        versionCode = 7
         versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
