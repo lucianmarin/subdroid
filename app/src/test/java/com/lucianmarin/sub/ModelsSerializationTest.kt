@@ -5,8 +5,11 @@ import com.lucianmarin.sub.model.MemberResponse
 import com.lucianmarin.sub.model.PaginatedChatsResponse
 import com.lucianmarin.sub.model.PaginatedEntriesResponse
 import com.lucianmarin.sub.model.ReplyDetailResponse
+import com.lucianmarin.sub.model.SidebarSection
 import com.lucianmarin.sub.model.SubNotifications
+import com.lucianmarin.sub.model.SubUser
 import com.lucianmarin.sub.network.APIClient
+import com.lucianmarin.sub.state.AppUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -188,5 +191,73 @@ class ModelsSerializationTest {
         val notifs = json.decodeFromString(SubNotifications.serializer(), notifPayload)
         assertEquals(6, notifs.activityCount)
         assertEquals(4, notifs.messages)
+    }
+
+    @Test
+    fun cachesFirstPageEndpointsAndClearsOnLogout() {
+        val store = object : APIClient.EndpointCacheStore {
+            val map = mutableMapOf<String, String>()
+            override fun readCache(endpointKey: String): String? =
+                map[APIClient.normalizeEndpointKey(endpointKey)]
+
+            override fun writeCache(endpointKey: String, rawJson: String) {
+                map[APIClient.normalizeEndpointKey(endpointKey)] = rawJson
+            }
+
+            override fun clearCache() {
+                map.clear()
+            }
+        }
+
+        assertTrue(APIClient.isCacheableRequest("GET", emptyMap()))
+        assertTrue(APIClient.isCacheableRequest("GET", mapOf("p" to "1")))
+        assertTrue(APIClient.isCacheableRequest("GET", mapOf("p" to "1", "q" to "")))
+        org.junit.Assert.assertFalse(APIClient.isCacheableRequest("GET", mapOf("p" to "2")))
+        org.junit.Assert.assertFalse(APIClient.isCacheableRequest("GET", mapOf("q" to "hello")))
+        org.junit.Assert.assertFalse(APIClient.isCacheableRequest("POST", emptyMap()))
+        assertEquals("/feed", APIClient.normalizeEndpointKey("feed"))
+        assertEquals("/feed", APIClient.normalizeEndpointKey("/feed/"))
+
+        val client = APIClient(authToken = "token123", cacheStore = store)
+        store.writeCache(
+            "/feed",
+            """{"page":1,"entries":[{"id":1,"content":"Cached entry"}]}"""
+        )
+
+        val cachedPage1 = client.getCachedEntries("feed", page = 1, query = null)
+        assertNotNull(cachedPage1)
+        assertEquals(1, cachedPage1?.entries?.first()?.id)
+        assertEquals("Cached entry", cachedPage1?.entries?.first()?.content)
+
+        // Page 2 and search queries should not return the first-page cache
+        org.junit.Assert.assertNull(client.getCachedEntries("feed", page = 2, query = null))
+        org.junit.Assert.assertNull(client.getCachedEntries("feed", page = 1, query = "topic"))
+
+        // Clear cache on logout
+        store.clearCache()
+        client.authToken = null
+        org.junit.Assert.assertNull(client.getCachedEntries("feed", page = 1, query = null))
+    }
+
+    @Test
+    fun remembersLastSubtabForMessagesAndTrendingInBottomNav() {
+        val authedState = AppUiState(
+            authToken = "token123",
+            currentUser = SubUser(username = "lucian"),
+            selectedSection = SidebarSection.FEED,
+            lastMessagesSubtab = SidebarSection.MENTIONS,
+            lastTrendingSubtab = SidebarSection.SAVED
+        )
+
+        val messagesTarget = authedState.targetSectionForBottomNav(SidebarSection.MESSAGES)
+        val trendingTarget = authedState.targetSectionForBottomNav(SidebarSection.TRENDING)
+
+        assertEquals(SidebarSection.MENTIONS, messagesTarget)
+        assertEquals("alternate_email", messagesTarget.iconName)
+        assertEquals(SidebarSection.SAVED, trendingTarget)
+        assertEquals("bookmark", trendingTarget.iconName)
+
+        val unauthedState = authedState.copy(authToken = null, currentUser = null)
+        assertEquals(SidebarSection.TRENDING, unauthedState.targetSectionForBottomNav(SidebarSection.TRENDING))
     }
 }

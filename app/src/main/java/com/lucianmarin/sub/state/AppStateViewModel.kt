@@ -48,6 +48,8 @@ data class AppUiState(
     val authToken: String? = null,
     val currentUser: SubUser? = null,
     val selectedSection: SidebarSection = SidebarSection.TRENDING,
+    val lastMessagesSubtab: SidebarSection = SidebarSection.MESSAGES,
+    val lastTrendingSubtab: SidebarSection = SidebarSection.TRENDING,
     val navigationPath: List<NavigationDestination> = emptyList(),
     val activeConversationHasMessages: Boolean? = null,
     val notifications: SubNotifications = SubNotifications(),
@@ -69,6 +71,20 @@ data class AppUiState(
             SidebarSection.unauthenticatedSections
         }
 
+    fun targetSectionForBottomNav(section: SidebarSection): SidebarSection = when (section) {
+        SidebarSection.MESSAGES -> if (isAuthenticated && lastMessagesSubtab in SidebarSection.messagesSubtabs) {
+            lastMessagesSubtab
+        } else {
+            SidebarSection.MESSAGES
+        }
+        SidebarSection.TRENDING -> if (isAuthenticated && lastTrendingSubtab in SidebarSection.trendingSubtabs) {
+            lastTrendingSubtab
+        } else {
+            SidebarSection.TRENDING
+        }
+        else -> section
+    }
+
     fun badgeCount(forSection: SidebarSection): Int = when (forSection) {
         SidebarSection.FOLLOWERS -> notifications.followers
         SidebarSection.MENTIONS -> notifications.mentions
@@ -87,7 +103,7 @@ data class AppUiState(
 class AppStateViewModel(application: Application) : AndroidViewModel(application) {
 
     val storage = SessionStorage(application)
-    val api = APIClient()
+    val api = APIClient(cacheStore = storage)
 
     private val _uiState = MutableStateFlow(AppUiState())
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
@@ -102,7 +118,10 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
 
         val token = storage.getAuthToken()
         val savedUser = storage.getSavedUser()
+        val savedMessagesSubtab = storage.getLastMessagesSubtab()
+        val savedTrendingSubtab = storage.getLastTrendingSubtab()
         api.authToken = token
+        val cachedNotifs = api.getCachedNotifications() ?: SubNotifications()
 
         val initialSection = if (!token.isNullOrBlank() && savedUser != null) {
             SidebarSection.FEED
@@ -114,7 +133,10 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
             it.copy(
                 authToken = token,
                 currentUser = savedUser,
-                selectedSection = initialSection
+                notifications = cachedNotifs,
+                selectedSection = initialSection,
+                lastMessagesSubtab = savedMessagesSubtab,
+                lastTrendingSubtab = savedTrendingSubtab
             )
         }
 
@@ -169,10 +191,12 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
         storage.setAuthToken(token)
         storage.setSavedUser(mergedUser)
         api.authToken = token
+        val cachedNotifs = api.getCachedNotifications() ?: SubNotifications()
         _uiState.update {
             it.copy(
                 authToken = token,
                 currentUser = mergedUser,
+                notifications = cachedNotifs,
                 navigationPath = emptyList(),
                 activeConversationHasMessages = null,
                 selectedSection = SidebarSection.FEED
@@ -197,6 +221,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
 
 
     fun logout() {
+        storage.clearCache()
         storage.setAuthToken(null)
         storage.setSavedUser(null)
         api.authToken = null
@@ -230,9 +255,25 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
             else -> current.notifications
         }
 
+        val updatedMessagesSubtab = if (section in SidebarSection.messagesSubtabs) {
+            storage.setLastMessagesSubtab(section)
+            section
+        } else {
+            current.lastMessagesSubtab
+        }
+
+        val updatedTrendingSubtab = if (section in SidebarSection.trendingSubtabs) {
+            storage.setLastTrendingSubtab(section)
+            section
+        } else {
+            current.lastTrendingSubtab
+        }
+
         if (current.selectedSection == section && current.navigationPath.isEmpty()) {
             _uiState.update {
                 it.copy(
+                    lastMessagesSubtab = updatedMessagesSubtab,
+                    lastTrendingSubtab = updatedTrendingSubtab,
                     notifications = updatedNotifs,
                     reloadTrigger = it.reloadTrigger + 1
                 )
@@ -241,6 +282,8 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
             _uiState.update {
                 it.copy(
                     selectedSection = section,
+                    lastMessagesSubtab = updatedMessagesSubtab,
+                    lastTrendingSubtab = updatedTrendingSubtab,
                     navigationPath = emptyList(),
                     activeConversationHasMessages = null,
                     notifications = updatedNotifs
@@ -611,7 +654,11 @@ class NotificationPollWorker(
         val storage = SessionStorage(applicationContext)
         val token = storage.getAuthToken() ?: return Result.success()
         val baseUrl = storage.getApiBaseUrl()
-        val api = APIClient(baseUrl = baseUrl, authToken = token)
+        val api = APIClient(
+            baseUrl = baseUrl,
+            authToken = token,
+            cacheStore = storage
+        )
 
         return try {
             val notifs = api.fetchNotifications()

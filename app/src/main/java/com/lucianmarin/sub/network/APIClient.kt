@@ -36,8 +36,15 @@ class APIException(
 
 class APIClient(
     @Volatile var baseUrl: String = DEFAULT_BASE_URL,
-    @Volatile var authToken: String? = null
+    @Volatile var authToken: String? = null,
+    val cacheStore: EndpointCacheStore? = null
 ) {
+    interface EndpointCacheStore {
+        fun readCache(endpointKey: String): String?
+        fun writeCache(endpointKey: String, rawJson: String)
+        fun clearCache()
+    }
+
     companion object {
         const val DEFAULT_BASE_URL = "https://subreply.com/api"
 
@@ -57,6 +64,23 @@ class APIClient(
                 "$trimmed/api"
             } else {
                 trimmed
+            }
+        }
+
+        fun normalizeEndpointKey(path: String): String =
+            "/" + path.trim().trim('/')
+
+        fun isCacheableRequest(
+            method: String,
+            queryParams: Map<String, String?> = emptyMap()
+        ): Boolean {
+            if (!method.equals("GET", ignoreCase = true)) return false
+            val q = queryParams["q"]
+            if (!q.isNullOrBlank()) return false
+            val p = queryParams["p"]?.trim()
+            if (!p.isNullOrEmpty() && p != "1") return false
+            return queryParams.entries.all { (k, v) ->
+                v.isNullOrBlank() || (k == "p" && v.trim() == "1")
             }
         }
     }
@@ -155,7 +179,24 @@ class APIClient(
             val firstMessage = fieldErrors.values.firstOrNull() ?: "Validation error"
             throw APIException(firstMessage, statusCode = 200, fieldErrors = fieldErrors)
         }
-        json.decodeFromString<T>(rawText)
+        val decoded = json.decodeFromString<T>(rawText)
+        if (!authToken.isNullOrBlank() && isCacheableRequest(method, queryParams)) {
+            cacheStore?.writeCache(normalizeEndpointKey(path), rawText)
+        }
+        decoded
+    }
+
+    private inline fun <reified T> readCached(
+        path: String,
+        queryParams: Map<String, String?> = emptyMap()
+    ): T? {
+        if (authToken.isNullOrBlank() || !isCacheableRequest("GET", queryParams)) return null
+        val raw = cacheStore?.readCache(normalizeEndpointKey(path)) ?: return null
+        return try {
+            json.decodeFromString<T>(raw)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private suspend fun requestRaw(
@@ -265,6 +306,9 @@ class APIClient(
 
     // MARK: - Notifications
 
+    fun getCachedNotifications(): SubNotifications? =
+        readCached(path = "/notifications")
+
     suspend fun fetchNotifications(): SubNotifications =
         request(
             method = "GET",
@@ -272,6 +316,21 @@ class APIClient(
         )
 
     // MARK: - Feeds & Streams
+
+    fun getCachedEntries(
+        path: String,
+        page: Int = 1,
+        query: String? = null
+    ): PaginatedEntriesResponse? {
+        val params = mutableMapOf<String, String?>()
+        if (page > 1) {
+            params["p"] = page.toString()
+        }
+        if (!query.isNullOrEmpty()) {
+            params["q"] = query
+        }
+        return readCached(path = path, queryParams = params)
+    }
 
     suspend fun fetchEntries(
         path: String,
@@ -290,6 +349,21 @@ class APIClient(
             path = path,
             queryParams = params
         )
+    }
+
+    fun getCachedUsers(
+        path: String,
+        page: Int = 1,
+        query: String? = null
+    ): PaginatedUsersResponse? {
+        val params = mutableMapOf<String, String?>()
+        if (page > 1) {
+            params["p"] = page.toString()
+        }
+        if (!query.isNullOrEmpty()) {
+            params["q"] = query
+        }
+        return readCached(path = path, queryParams = params)
     }
 
     suspend fun fetchUsers(
@@ -312,6 +386,9 @@ class APIClient(
     }
 
     // MARK: - Reply Detail & Post Actions
+
+    fun getCachedReplyDetail(id: Int): ReplyDetailResponse? =
+        readCached(path = "/reply/$id")
 
     suspend fun fetchReplyDetail(id: Int): ReplyDetailResponse =
         request(
@@ -366,10 +443,28 @@ class APIClient(
 
     // MARK: - Member Profile & Follow
 
+    fun getCachedMemberDetail(username: String): SubUser? {
+        val clean = encodeSegment(username.lowercase())
+        val resp = readCached<MemberResponse>(path = "/$clean") ?: return null
+        return resp.user ?: SubUser(username = username)
+    }
+
     suspend fun fetchMemberDetail(username: String): SubUser {
         val clean = encodeSegment(username.lowercase())
         val resp = request<MemberResponse>(method = "GET", path = "/$clean")
         return resp.user ?: SubUser(username = username)
+    }
+
+    fun getCachedMemberPosts(
+        username: String,
+        page: Int = 1
+    ): PaginatedEntriesResponse? {
+        val clean = encodeSegment(username.lowercase())
+        val params = if (page > 1) mapOf("p" to page.toString()) else emptyMap()
+        return readCached(
+            path = "/$clean/posts",
+            queryParams = params
+        )
     }
 
     suspend fun fetchMemberPosts(
@@ -399,11 +494,27 @@ class APIClient(
 
     // MARK: - Direct Messages
 
+    fun getCachedMessagesInbox(page: Int = 1): PaginatedChatsResponse? {
+        val params = if (page > 1) mapOf("p" to page.toString()) else emptyMap()
+        return readCached(
+            path = "/messages",
+            queryParams = params
+        )
+    }
+
     suspend fun fetchMessagesInbox(page: Int = 1): PaginatedChatsResponse {
         val params = if (page > 1) mapOf("p" to page.toString()) else emptyMap()
         return request(
             method = "GET",
             path = "/messages",
+            queryParams = params
+        )
+    }
+
+    fun getCachedConversation(username: String, page: Int = 1): PaginatedChatsResponse? {
+        val params = if (page > 1) mapOf("p" to page.toString()) else emptyMap()
+        return readCached(
+            path = "/${encodeSegment(username.lowercase())}/message",
             queryParams = params
         )
     }

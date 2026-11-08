@@ -59,6 +59,7 @@ fun SidebarView(
         verticalAlignment = Alignment.CenterVertically
     ) {
         for (section in uiState.visibleSidebarSections) {
+            val targetSection = uiState.targetSectionForBottomNav(section)
             val isSelected = when {
                 section == SidebarSection.MESSAGES && isInConversation -> true
                 isInConversation -> false
@@ -70,32 +71,22 @@ fun SidebarView(
                     when (uiState.activeConversationHasMessages) {
                         true -> "chat"
                         false -> "sms"
-                        null -> section.iconName
+                        null -> targetSection.iconName
                     }
-                }
-                section == SidebarSection.MESSAGES &&
-                    (uiState.selectedSection == SidebarSection.REPLIES || uiState.selectedSection == SidebarSection.MENTIONS) -> {
-                    uiState.selectedSection.iconName
-                }
-                section == SidebarSection.TRENDING &&
-                    (uiState.selectedSection == SidebarSection.SAVED ||
-                        uiState.selectedSection == SidebarSection.FOLLOWERS ||
-                        uiState.selectedSection == SidebarSection.FOLLOWING) -> {
-                    uiState.selectedSection.iconName
                 }
                 section == SidebarSection.LOGIN &&
                     uiState.selectedSection == SidebarSection.REGISTER -> {
                     uiState.selectedSection.iconName
                 }
-                else -> section.iconName
+                else -> targetSection.iconName
             }
 
             SidebarIconButton(
-                title = section.title,
+                title = targetSection.title,
                 iconName = iconName,
                 isSelected = isSelected,
                 badgeCount = uiState.bottomNavBadgeCount(section),
-                onClick = { onSelectSection(section) }
+                onClick = { onSelectSection(targetSection) }
             )
         }
     }

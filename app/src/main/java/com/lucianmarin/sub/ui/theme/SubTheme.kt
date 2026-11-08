@@ -80,7 +80,8 @@ val MaterialSymbolsFontFamily = FontFamily(
 )
 
 /**
- * Exact Subreply color palette matching `../subreply/static/style.sass` and `../macreply/Sources/Macreply/Views/MainSplitView.swift`.
+ * Exact Subreply color palette matching `../subreply/static/style.sass`
+ * and `../macreply/Sources/Macreply/Views/MainSplitView.swift`.
  */
 @Immutable
 data class SubPalette(
@@ -350,7 +351,8 @@ fun SubPullToRefreshColumn(
 
 /**
  * Matches `.menu` in `../subreply/static/style.sass` and `MenuHeaderView` in `../macreply`,
- * sized to match the exact 56.dp total height (10.dp outer + 10.dp top / 6.dp bottom inner vertical padding + 20.sp text)
+ * sized to match the exact 56.dp total height
+ * (10.dp outer + 10.dp top / 6.dp bottom inner vertical padding + 20.sp text)
  * of the top whitesmoke forms (`PlaceholderBannerView` and `SearchQueryBar`).
  */
 @Composable
@@ -427,7 +429,8 @@ fun <T> SubMenuHeader(
 }
 
 /**
- * Matches `SubSubmitButton` in `../macreply/Sources/Macreply/Views/OptionsView.swift` and `button` in `style.sass`.
+ * Matches `SubSubmitButton` in `../macreply/Sources/Macreply/Views/OptionsView.swift`
+ * and `button` in `style.sass`.
  */
 @Composable
 fun SubSubmitButton(

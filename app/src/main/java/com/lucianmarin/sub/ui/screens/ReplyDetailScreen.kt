@@ -39,14 +39,34 @@ fun ReplyDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    var mainEntry by remember(entryId) { mutableStateOf<SubEntry?>(null) }
-    var ancestors by remember(entryId) { mutableStateOf<List<SubEntry>>(emptyList()) }
-    var kids by remember(entryId) { mutableStateOf<List<SubEntry>>(emptyList()) }
-    var duplicateFromServer by remember(entryId) { mutableStateOf<Boolean?>(null) }
-    var isLoading by remember(entryId) { mutableStateOf(false) }
-    var errorMessage by remember(entryId) { mutableStateOf<String?>(null) }
+    val initialCached = remember(entryId, uiState.authToken) {
+        viewModel.api.getCachedReplyDetail(id = entryId)
+    }
+
+    var mainEntry by remember(entryId, uiState.authToken) {
+        mutableStateOf(initialCached?.entry)
+    }
+    var ancestors by remember(entryId, uiState.authToken) {
+        mutableStateOf(initialCached?.ancestors ?: emptyList())
+    }
+    var kids by remember(entryId, uiState.authToken) {
+        mutableStateOf(initialCached?.kids ?: emptyList())
+    }
+    var duplicateFromServer by remember(entryId, uiState.authToken) {
+        mutableStateOf<Boolean?>(initialCached?.duplicate)
+    }
+    var isLoading by remember(entryId, uiState.authToken) { mutableStateOf(false) }
+    var errorMessage by remember(entryId, uiState.authToken) { mutableStateOf<String?>(null) }
 
     suspend fun loadDetail() {
+        if (mainEntry == null) {
+            viewModel.api.getCachedReplyDetail(id = entryId)?.let { cached ->
+                mainEntry = cached.entry
+                ancestors = cached.ancestors
+                kids = cached.kids
+                duplicateFromServer = cached.duplicate
+            }
+        }
         isLoading = mainEntry == null
         errorMessage = null
         try {

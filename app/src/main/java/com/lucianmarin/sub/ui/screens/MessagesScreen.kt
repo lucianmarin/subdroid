@@ -48,16 +48,31 @@ fun MessagesInboxScreen(
     val scope = rememberCoroutineScope()
     val pageSize = 16
 
-    var chats by remember { mutableStateOf<List<SubChat>>(emptyList()) }
-    var currentPage by remember { mutableIntStateOf(1) }
-    var canLoadMore by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var isLoadingMore by remember { mutableStateOf(false) }
-    var loadMoreError by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val initialCached = remember(uiState.authToken) {
+        viewModel.api.getCachedMessagesInbox(page = 1)
+    }
+
+    var chats by remember(uiState.authToken) {
+        mutableStateOf(initialCached?.entries ?: emptyList())
+    }
+    var currentPage by remember(uiState.authToken) { mutableIntStateOf(1) }
+    var canLoadMore by remember(uiState.authToken) {
+        mutableStateOf((initialCached?.entries?.size ?: 0) >= pageSize)
+    }
+    var isLoading by remember(uiState.authToken) { mutableStateOf(false) }
+    var isLoadingMore by remember(uiState.authToken) { mutableStateOf(false) }
+    var loadMoreError by remember(uiState.authToken) { mutableStateOf(false) }
+    var errorMessage by remember(uiState.authToken) { mutableStateOf<String?>(null) }
 
     suspend fun reloadChats() {
         if (!uiState.isAuthenticated) return
+
+        if (chats.isEmpty()) {
+            viewModel.api.getCachedMessagesInbox(page = 1)?.let { cached ->
+                chats = cached.entries
+                canLoadMore = cached.entries.size >= pageSize
+            }
+        }
 
         isLoading = chats.isEmpty()
         errorMessage = null
@@ -247,15 +262,27 @@ fun ConversationScreen(
     val scope = rememberCoroutineScope()
     val pageSize = 16
 
-    var messages by remember(username) { mutableStateOf<List<SubChat>>(emptyList()) }
-    var isBlockedFromServer by remember(username) { mutableStateOf<Boolean?>(null) }
-    var currentPage by remember(username) { mutableIntStateOf(1) }
-    var canLoadMore by remember(username) { mutableStateOf(false) }
-    var isLoading by remember(username) { mutableStateOf(false) }
-    var isLoadingMore by remember(username) { mutableStateOf(false) }
-    var loadMoreError by remember(username) { mutableStateOf(false) }
-    var errorMessage by remember(username) { mutableStateOf<String?>(null) }
-    var clearState by remember(username) { mutableStateOf(ClearConversationState.IDLE) }
+    val initialCached = remember(username, uiState.authToken) {
+        viewModel.api.getCachedConversation(username = username, page = 1)
+    }
+
+    var messages by remember(username, uiState.authToken) {
+        mutableStateOf(initialCached?.entries ?: emptyList())
+    }
+    var isBlockedFromServer by remember(username, uiState.authToken) {
+        mutableStateOf(initialCached?.blocked)
+    }
+    var currentPage by remember(username, uiState.authToken) { mutableIntStateOf(1) }
+    var canLoadMore by remember(username, uiState.authToken) {
+        mutableStateOf((initialCached?.entries?.size ?: 0) >= pageSize)
+    }
+    var isLoading by remember(username, uiState.authToken) { mutableStateOf(false) }
+    var isLoadingMore by remember(username, uiState.authToken) { mutableStateOf(false) }
+    var loadMoreError by remember(username, uiState.authToken) { mutableStateOf(false) }
+    var errorMessage by remember(username, uiState.authToken) { mutableStateOf<String?>(null) }
+    var clearState by remember(username, uiState.authToken) {
+        mutableStateOf(ClearConversationState.IDLE)
+    }
 
     val isSelfConversation = uiState.currentUser?.username?.equals(username, ignoreCase = true) == true
     val isBlockedWaitingForResponse = remember(isBlockedFromServer, messages, uiState.currentUser, username) {
@@ -275,6 +302,17 @@ fun ConversationScreen(
 
     suspend fun loadConversation() {
         if (!uiState.isAuthenticated) return
+
+        if (messages.isEmpty()) {
+            viewModel.api.getCachedConversation(username = username, page = 1)?.let { cached ->
+                messages = cached.entries
+                canLoadMore = cached.entries.size >= pageSize
+                if (cached.blocked != null) {
+                    isBlockedFromServer = cached.blocked
+                }
+                viewModel.setActiveConversationHasMessages(cached.entries.isNotEmpty())
+            }
+        }
 
         isLoading = messages.isEmpty()
         errorMessage = null

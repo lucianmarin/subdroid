@@ -57,15 +57,44 @@ fun PeopleListScreen(
         }
     }
 
-    var users by remember(section) { mutableStateOf<List<SubUser>>(emptyList()) }
-    var currentPage by remember(section) { mutableIntStateOf(1) }
-    var canLoadMore by remember(section) { mutableStateOf(false) }
-    var isLoading by remember(section) { mutableStateOf(false) }
-    var isLoadingMore by remember(section) { mutableStateOf(false) }
-    var loadMoreError by remember(section) { mutableStateOf(false) }
-    var errorMessage by remember(section) { mutableStateOf<String?>(null) }
-    var searchQuery by remember(section) { mutableStateOf("") }
-    var submittedQuery by remember(section) { mutableStateOf("") }
+    val initialQuery = remember(section, uiState.searchRequestedQuery) {
+        if (section == SidebarSection.PEOPLE && !uiState.searchRequestedQuery.isNullOrEmpty()) {
+            uiState.searchRequestedQuery
+        } else {
+            null
+        }
+    }
+    val initialCached = remember(section, uiState.authToken) {
+        if (initialQuery == null) {
+            viewModel.api.getCachedUsers(path = endpointPath(), page = 1, query = null)
+        } else {
+            null
+        }
+    }
+
+    var users by remember(section, uiState.authToken) {
+        mutableStateOf(
+            if (initialCached != null) {
+                arrangeUsers(initialCached.entries, null)
+            } else {
+                emptyList()
+            }
+        )
+    }
+    var currentPage by remember(section, uiState.authToken) { mutableIntStateOf(1) }
+    var canLoadMore by remember(section, uiState.authToken) {
+        mutableStateOf((initialCached?.entries?.size ?: 0) >= pageSize)
+    }
+    var isLoading by remember(section, uiState.authToken) { mutableStateOf(false) }
+    var isLoadingMore by remember(section, uiState.authToken) { mutableStateOf(false) }
+    var loadMoreError by remember(section, uiState.authToken) { mutableStateOf(false) }
+    var errorMessage by remember(section, uiState.authToken) { mutableStateOf<String?>(null) }
+    var searchQuery by remember(section, uiState.authToken) {
+        mutableStateOf(initialQuery ?: "")
+    }
+    var submittedQuery by remember(section, uiState.authToken) {
+        mutableStateOf(initialQuery ?: "")
+    }
 
     suspend fun reloadUsers() {
         val queryParam = if (section == SidebarSection.PEOPLE && submittedQuery.isNotBlank()) {
@@ -74,7 +103,18 @@ fun PeopleListScreen(
             null
         }
 
-        isLoading = true
+        if (queryParam == null && users.isEmpty()) {
+            val cached = viewModel.api.getCachedUsers(path = endpointPath(), page = 1, query = null)
+            if (cached != null) {
+                users = arrangeUsers(cached.entries, null)
+                canLoadMore = cached.entries.size >= pageSize
+            }
+        } else if (queryParam != null) {
+            users = emptyList()
+            canLoadMore = false
+        }
+
+        isLoading = users.isEmpty()
         errorMessage = null
         loadMoreError = false
         currentPage = 1
@@ -124,6 +164,20 @@ fun PeopleListScreen(
         }
     }
 
+    fun onClearSearch() {
+        searchQuery = ""
+        submittedQuery = ""
+        val cached = viewModel.api.getCachedUsers(path = endpointPath(), page = 1, query = null)
+        if (cached != null) {
+            users = arrangeUsers(cached.entries, null)
+            canLoadMore = cached.entries.size >= pageSize
+        } else {
+            users = emptyList()
+            canLoadMore = false
+        }
+        scope.launch { reloadUsers() }
+    }
+
     LaunchedEffect(section, uiState.reloadTrigger, uiState.authToken) {
         if (section == SidebarSection.PEOPLE && !uiState.searchRequestedQuery.isNullOrEmpty()) {
             val q = uiState.searchRequestedQuery!!
@@ -162,11 +216,7 @@ fun PeopleListScreen(
                         submittedQuery = searchQuery
                         scope.launch { reloadUsers() }
                     },
-                    onClear = {
-                        searchQuery = ""
-                        submittedQuery = ""
-                        scope.launch { reloadUsers() }
-                    }
+                    onClear = { onClearSearch() }
                 )
             }
             SidebarSection.FOLLOWING,

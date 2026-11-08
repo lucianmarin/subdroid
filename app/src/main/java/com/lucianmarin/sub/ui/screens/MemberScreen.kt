@@ -55,19 +55,52 @@ fun MemberScreen(
     val scope = rememberCoroutineScope()
     val pageSize = 16
 
-    var member by remember(username) { mutableStateOf<SubUser?>(null) }
-    var entries by remember(username) { mutableStateOf<List<SubEntry>>(emptyList()) }
-    var isFollowing by remember(username) { mutableStateOf(false) }
-    var followsViewer by remember(username) { mutableStateOf(false) }
-    var currentPage by remember(username) { mutableIntStateOf(1) }
-    var canLoadMore by remember(username) { mutableStateOf(false) }
-    var isLoadingDetails by remember(username) { mutableStateOf(false) }
-    var isLoadingPosts by remember(username) { mutableStateOf(false) }
-    var isLoadingMore by remember(username) { mutableStateOf(false) }
-    var loadMoreError by remember(username) { mutableStateOf(false) }
-    var errorMessage by remember(username) { mutableStateOf<String?>(null) }
+    val initialCachedMember = remember(username, uiState.authToken) {
+        viewModel.api.getCachedMemberDetail(username = username)
+    }
+    val initialCachedPosts = remember(username, uiState.authToken) {
+        viewModel.api.getCachedMemberPosts(username = username, page = 1)
+    }
+
+    var member by remember(username, uiState.authToken) {
+        mutableStateOf(initialCachedMember)
+    }
+    var entries by remember(username, uiState.authToken) {
+        mutableStateOf(initialCachedPosts?.entries ?: emptyList())
+    }
+    var isFollowing by remember(username, uiState.authToken) {
+        mutableStateOf(initialCachedMember?.followed ?: false)
+    }
+    var followsViewer by remember(username, uiState.authToken) {
+        mutableStateOf(initialCachedMember?.follows ?: false)
+    }
+    var currentPage by remember(username, uiState.authToken) {
+        mutableIntStateOf(initialCachedPosts?.page ?: 1)
+    }
+    var canLoadMore by remember(username, uiState.authToken) {
+        mutableStateOf((initialCachedPosts?.entries?.size ?: 0) >= pageSize)
+    }
+    var isLoadingDetails by remember(username, uiState.authToken) { mutableStateOf(false) }
+    var isLoadingPosts by remember(username, uiState.authToken) { mutableStateOf(false) }
+    var isLoadingMore by remember(username, uiState.authToken) { mutableStateOf(false) }
+    var loadMoreError by remember(username, uiState.authToken) { mutableStateOf(false) }
+    var errorMessage by remember(username, uiState.authToken) { mutableStateOf<String?>(null) }
 
     suspend fun loadMember() {
+        if (member == null) {
+            viewModel.api.getCachedMemberDetail(username = username)?.let { cached ->
+                member = cached
+                isFollowing = cached.followed
+                followsViewer = cached.follows
+            }
+        }
+        if (entries.isEmpty()) {
+            viewModel.api.getCachedMemberPosts(username = username, page = 1)?.let { cachedPosts ->
+                entries = cachedPosts.entries
+                currentPage = cachedPosts.page
+                canLoadMore = cachedPosts.entries.size >= pageSize
+            }
+        }
         isLoadingDetails = member == null
         isLoadingPosts = entries.isEmpty()
         errorMessage = null

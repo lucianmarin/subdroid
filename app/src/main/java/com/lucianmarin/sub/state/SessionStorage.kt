@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.lucianmarin.sub.model.SidebarSection
 import com.lucianmarin.sub.model.SubUser
 import com.lucianmarin.sub.network.APIClient
 import com.lucianmarin.sub.ui.theme.ThemeMode
@@ -15,12 +16,15 @@ import kotlinx.coroutines.flow.first
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "subdroid_settings")
 
-class SessionStorage(private val context: Context) {
+class SessionStorage(private val context: Context) : APIClient.EndpointCacheStore {
 
     companion object {
         private const val SECURE_PREFS_NAME = "subdroid_secure_session"
+        private const val CACHE_PREFS_NAME = "subdroid_endpoint_cache"
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_SAVED_USER_JSON = "saved_user_json"
+        private const val KEY_LAST_MESSAGES_SUBTAB = "last_messages_subtab"
+        private const val KEY_LAST_TRENDING_SUBTAB = "last_trending_subtab"
 
         private val PREF_THEME_MODE = stringPreferencesKey("theme_mode")
         private val PREF_API_BASE_URL = stringPreferencesKey("api_base_url")
@@ -30,6 +34,25 @@ class SessionStorage(private val context: Context) {
 
     private val securePrefs: SharedPreferences by lazy {
         context.getSharedPreferences(SECURE_PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private val cachePrefs: SharedPreferences by lazy {
+        context.getSharedPreferences(CACHE_PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    override fun readCache(endpointKey: String): String? {
+        val key = APIClient.normalizeEndpointKey(endpointKey)
+        return cachePrefs.getString(key, null)?.takeIf { it.isNotBlank() }
+    }
+
+    override fun writeCache(endpointKey: String, rawJson: String) {
+        if (rawJson.isBlank()) return
+        val key = APIClient.normalizeEndpointKey(endpointKey)
+        cachePrefs.edit().putString(key, rawJson).apply()
+    }
+
+    override fun clearCache() {
+        cachePrefs.edit().clear().apply()
     }
 
     fun getAuthToken(): String? =
@@ -66,6 +89,38 @@ class SessionStorage(private val context: Context) {
             }
         }
         editor.apply()
+    }
+
+    fun getLastMessagesSubtab(): SidebarSection {
+        val key = securePrefs.getString(KEY_LAST_MESSAGES_SUBTAB, null)
+        val section = SidebarSection.fromKey(key)
+        return if (section != null && section in SidebarSection.messagesSubtabs) {
+            section
+        } else {
+            SidebarSection.MESSAGES
+        }
+    }
+
+    fun setLastMessagesSubtab(section: SidebarSection) {
+        if (section in SidebarSection.messagesSubtabs) {
+            securePrefs.edit().putString(KEY_LAST_MESSAGES_SUBTAB, section.key).apply()
+        }
+    }
+
+    fun getLastTrendingSubtab(): SidebarSection {
+        val key = securePrefs.getString(KEY_LAST_TRENDING_SUBTAB, null)
+        val section = SidebarSection.fromKey(key)
+        return if (section != null && section in SidebarSection.trendingSubtabs) {
+            section
+        } else {
+            SidebarSection.TRENDING
+        }
+    }
+
+    fun setLastTrendingSubtab(section: SidebarSection) {
+        if (section in SidebarSection.trendingSubtabs) {
+            securePrefs.edit().putString(KEY_LAST_TRENDING_SUBTAB, section.key).apply()
+        }
     }
 
     suspend fun getThemeMode(): ThemeMode {

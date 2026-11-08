@@ -50,15 +50,38 @@ fun FeedStreamScreen(
         else -> "feed"
     }
 
-    var entries by remember(section) { mutableStateOf<List<SubEntry>>(emptyList()) }
-    var currentPage by remember(section) { mutableIntStateOf(1) }
-    var canLoadMore by remember(section) { mutableStateOf(false) }
-    var isLoading by remember(section) { mutableStateOf(false) }
-    var isLoadingMore by remember(section) { mutableStateOf(false) }
-    var loadMoreError by remember(section) { mutableStateOf(false) }
-    var errorMessage by remember(section) { mutableStateOf<String?>(null) }
-    var searchQuery by remember(section) { mutableStateOf("") }
-    var submittedQuery by remember(section) { mutableStateOf("") }
+    val initialQuery = remember(section, uiState.searchRequestedQuery) {
+        if (section == SidebarSection.DISCOVER && !uiState.searchRequestedQuery.isNullOrEmpty()) {
+            uiState.searchRequestedQuery
+        } else {
+            null
+        }
+    }
+    val initialCached = remember(section, uiState.authToken) {
+        if (initialQuery == null) {
+            viewModel.api.getCachedEntries(path = endpointPath(), page = 1, query = null)
+        } else {
+            null
+        }
+    }
+
+    var entries by remember(section, uiState.authToken) {
+        mutableStateOf(initialCached?.entries ?: emptyList())
+    }
+    var currentPage by remember(section, uiState.authToken) { mutableIntStateOf(1) }
+    var canLoadMore by remember(section, uiState.authToken) {
+        mutableStateOf((initialCached?.entries?.size ?: 0) >= pageSize)
+    }
+    var isLoading by remember(section, uiState.authToken) { mutableStateOf(false) }
+    var isLoadingMore by remember(section, uiState.authToken) { mutableStateOf(false) }
+    var loadMoreError by remember(section, uiState.authToken) { mutableStateOf(false) }
+    var errorMessage by remember(section, uiState.authToken) { mutableStateOf<String?>(null) }
+    var searchQuery by remember(section, uiState.authToken) {
+        mutableStateOf(initialQuery ?: "")
+    }
+    var submittedQuery by remember(section, uiState.authToken) {
+        mutableStateOf(initialQuery ?: "")
+    }
 
     suspend fun reloadEntries() {
         val queryParam = if (section == SidebarSection.DISCOVER && submittedQuery.isNotBlank()) {
@@ -67,7 +90,18 @@ fun FeedStreamScreen(
             null
         }
 
-        isLoading = true
+        if (queryParam == null && entries.isEmpty()) {
+            val cached = viewModel.api.getCachedEntries(path = endpointPath(), page = 1, query = null)
+            if (cached != null) {
+                entries = cached.entries
+                canLoadMore = cached.entries.size >= pageSize
+            }
+        } else if (queryParam != null) {
+            entries = emptyList()
+            canLoadMore = false
+        }
+
+        isLoading = entries.isEmpty()
         errorMessage = null
         loadMoreError = false
         currentPage = 1
@@ -115,6 +149,20 @@ fun FeedStreamScreen(
                 isLoadingMore = false
             }
         }
+    }
+
+    fun onClearSearch() {
+        searchQuery = ""
+        submittedQuery = ""
+        val cached = viewModel.api.getCachedEntries(path = endpointPath(), page = 1, query = null)
+        if (cached != null) {
+            entries = cached.entries
+            canLoadMore = cached.entries.size >= pageSize
+        } else {
+            entries = emptyList()
+            canLoadMore = false
+        }
+        scope.launch { reloadEntries() }
     }
 
     suspend fun postNewThread(content: String): Result<Unit> {
@@ -181,11 +229,7 @@ fun FeedStreamScreen(
                         submittedQuery = searchQuery
                         scope.launch { reloadEntries() }
                     },
-                    onClear = {
-                        searchQuery = ""
-                        submittedQuery = ""
-                        scope.launch { reloadEntries() }
-                    }
+                    onClear = { onClearSearch() }
                 )
             }
             SidebarSection.MENTIONS,
