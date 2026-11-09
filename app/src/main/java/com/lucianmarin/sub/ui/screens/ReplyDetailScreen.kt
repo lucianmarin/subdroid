@@ -206,7 +206,7 @@ fun ReplyDetailScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.alert,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         }
 

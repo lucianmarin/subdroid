@@ -231,7 +231,7 @@ fun MemberScreen(
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
                     color = SubTheme.alert,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                    modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
                 )
                 SubDivider()
             } else if (entries.isEmpty() && !isLoadingPosts) {
@@ -265,7 +265,7 @@ fun MemberScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.alert,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         }
 
@@ -315,8 +315,8 @@ fun UserRowView(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         // Row 1: FullName (+ @username if member header) + Follow/Edit action (if people list) + right date
         Row(
@@ -603,7 +603,7 @@ fun MemberLinksView(
         color = grayColor,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
     )
 }
 
@@ -625,7 +625,7 @@ fun MemberStatusRowView(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {

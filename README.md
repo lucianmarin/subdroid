@@ -121,7 +121,7 @@ All icons are rendered from the subsetted Google **Material Symbols Rounded** Tr
 ### 4.2 Entries & Streams (`EntryRow.kt` & `FeedScreen.kt`)
 
 - **`EntryItemView`**:
-  - Renders `RichContentView` followed (`4.dp` gap) by the lowercase `.small` metadata row (`13.sp`):
+  - Renders `RichContentView` followed (`5.dp` gap) by the lowercase `.small` metadata row (`13.sp`):
     - Left: `reply` / `1 reply` / `N replies` (+ `" ¬"` on root threads), `edit` (own post with 0 replies), `save` / `unsave` / `retry` (others' posts), `delete` $\rightarrow$ `undo` / `yes` $\rightarrow$ `deleted` (own post or direct reply to own post with 0 replies).
     - Right: `timestamp` (prefixed with `"··· "` when `entry.edited == true`).
 - **`StreamEntryView`**:

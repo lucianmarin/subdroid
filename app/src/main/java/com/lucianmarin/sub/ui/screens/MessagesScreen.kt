@@ -135,7 +135,7 @@ fun MessagesInboxScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.gray,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         } else if (errorMessage != null && chats.isEmpty()) {
             Text(
@@ -144,7 +144,7 @@ fun MessagesInboxScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.alert,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         } else {
             for (chat in chats) {
@@ -184,7 +184,7 @@ private fun ChatInboxRowView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         RichContentView(
@@ -428,7 +428,7 @@ fun ConversationScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.gray,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         } else if (errorMessage != null && messages.isEmpty()) {
             Text(
@@ -437,7 +437,7 @@ fun ConversationScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.alert,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         } else {
             for (msg in messages) {
@@ -495,10 +495,10 @@ private fun ConversationMessageRowView(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
-                start = if (isOutgoing) 20.dp else 50.dp,
-                end = 20.dp,
-                top = 10.dp,
-                bottom = 10.dp
+                start = if (isOutgoing) TopFormOuterHorizontalPadding else 50.dp,
+                end = TopFormOuterHorizontalPadding,
+                top = TopFormOuterVerticalPadding,
+                bottom = TopFormOuterVerticalPadding
             ),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -620,7 +620,7 @@ private fun ClearOutConversationRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding),
         contentAlignment = Alignment.Center
     ) {
         when (state) {
@@ -687,4 +687,3 @@ private fun ClearOutConversationRow(
         }
     }
 }
-

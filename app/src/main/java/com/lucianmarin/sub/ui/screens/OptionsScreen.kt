@@ -124,14 +124,14 @@ fun SubFormField(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(
                 text = label,
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 20.sp,
+                lineHeight = 15.sp,
                 color = SubTheme.primary
             )
             if (required) {
@@ -139,7 +139,7 @@ fun SubFormField(
                     text = "*",
                     fontFamily = Route159FontFamily,
                     fontSize = 13.sp,
-                    lineHeight = 20.sp,
+                    lineHeight = 15.sp,
                     color = SubTheme.gray
                 )
             }
@@ -269,8 +269,8 @@ private fun ProfileFormView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
+        verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -483,8 +483,8 @@ private fun DetailsFormView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
+        verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -631,8 +631,8 @@ private fun AccountFormView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
+        verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         SubFormField(
             label = "API Base URL",
@@ -708,7 +708,7 @@ private fun AccountFormView(
 
         SubDivider()
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(
                 text = "Theme",
                 fontFamily = Route159FontFamily,
@@ -718,7 +718,7 @@ private fun AccountFormView(
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(15.dp)
             ) {
                 for (mode in ThemeMode.entries) {
                     val isSelected = uiState.themeMode == mode

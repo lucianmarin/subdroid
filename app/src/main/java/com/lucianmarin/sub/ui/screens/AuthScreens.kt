@@ -141,8 +141,8 @@ fun LoginScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
+                    verticalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -265,8 +265,8 @@ private fun RegisterFormContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
+        verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -448,8 +448,8 @@ fun AboutScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                        .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
+                    verticalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
                     Text(
                         text = "Welcome to Subdroid, the native Android client for Subreply. It eliminates distractions and clutter, allowing you to focus on meaningful conversations and content sharing directly from a native sidebar and native feeds.",
@@ -540,7 +540,7 @@ fun AboutScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                        .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
@@ -570,7 +570,7 @@ fun AboutScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                        .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
@@ -592,7 +592,7 @@ fun AboutScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                        .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
@@ -625,7 +625,7 @@ private fun AboutSectionHeading(title: String) {
         fontSize = 14.sp,
         lineHeight = 20.sp,
         color = SubTheme.primary,
-        modifier = Modifier.padding(top = 4.dp)
+        modifier = Modifier.padding(top = 5.dp)
     )
 }
 
@@ -635,7 +635,7 @@ private fun AboutRuleRow(number: Int, text: String) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(vertical = 5.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.Top
         ) {

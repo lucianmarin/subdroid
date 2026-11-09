@@ -247,8 +247,8 @@ fun EntryItemView(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         RichContentView(
             author = entry.createdBy,
@@ -441,7 +441,7 @@ fun InlineParentRowView(
             ) {
                 viewModel.openReply(parent.id)
             }
-            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             .alpha(0.5f)
     ) {
         RichContentView(
@@ -521,7 +521,7 @@ fun LoadMoreButton(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding),
         contentAlignment = Alignment.Center
     ) {
         Text(

@@ -65,7 +65,7 @@ import com.lucianmarin.sub.ui.theme.SubTheme
 import kotlinx.coroutines.launch
 
 val TopFormOuterHorizontalPadding = 20.dp
-val TopFormOuterVerticalPadding = 10.dp
+val TopFormOuterVerticalPadding = 7.dp
 val TopFormInnerHorizontalPadding = 10.dp
 val TopFormInnerVerticalPadding = 8.dp
 val TopFormCornerShape = RoundedCornerShape(9.dp)

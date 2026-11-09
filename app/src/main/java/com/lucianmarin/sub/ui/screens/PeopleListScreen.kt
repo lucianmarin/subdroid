@@ -241,7 +241,7 @@ fun PeopleListScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.gray,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         } else if (errorMessage != null && users.isEmpty()) {
             Text(
@@ -250,7 +250,7 @@ fun PeopleListScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.alert,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         } else {
             for (user in users) {

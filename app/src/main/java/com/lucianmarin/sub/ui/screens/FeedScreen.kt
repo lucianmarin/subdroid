@@ -256,7 +256,7 @@ fun FeedStreamScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.gray,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         } else if (errorMessage != null && entries.isEmpty()) {
             Text(
@@ -265,7 +265,7 @@ fun FeedStreamScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = SubTheme.alert,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
             )
         } else {
             entries.forEachIndexed { index, entry ->

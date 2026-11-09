@@ -3,6 +3,7 @@ package com.lucianmarin.sub.ui.theme
 import android.app.Activity
 import android.graphics.drawable.ColorDrawable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -57,6 +58,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.lucianmarin.sub.R
+import com.lucianmarin.sub.ui.screens.TopFormCornerShape
+import com.lucianmarin.sub.ui.screens.TopFormInnerVerticalPadding
+import com.lucianmarin.sub.ui.screens.TopFormOuterHorizontalPadding
+import com.lucianmarin.sub.ui.screens.TopFormOuterVerticalPadding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -368,7 +373,7 @@ fun <T> SubMenuHeader(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = TopFormOuterVerticalPadding)
     ) {
         Row(
             modifier = Modifier
@@ -444,7 +449,7 @@ fun SubSubmitButton(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
+            .clip(TopFormCornerShape)
             .background(SubTheme.accent)
             .alpha(if (!enabled || isLoading) 0.6f else 1f)
             .clickable(
@@ -453,7 +458,7 @@ fun SubSubmitButton(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 15.dp, vertical = 6.dp),
+            .padding(horizontal = 15.dp, vertical = TopFormInnerVerticalPadding - 1.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
