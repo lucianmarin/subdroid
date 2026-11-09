@@ -128,6 +128,7 @@ fun PeopleListScreen(
             canLoadMore = res.entries.size >= pageSize
             isLoading = false
             if (section == SidebarSection.FOLLOWERS) {
+                viewModel.clearNotificationCount(SidebarSection.FOLLOWERS)
                 viewModel.refreshNotifications()
             }
         } catch (err: Exception) {

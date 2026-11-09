@@ -78,7 +78,10 @@ fun OptionsScreen(
         SubMenuHeader(
             items = OptionsTab.entries.map { it.label to it },
             selected = activeTab,
-            onSelect = { activeTab = it }
+            onSelect = {
+                activeTab = it
+                viewModel.refreshNotificationsOnViewChange()
+            }
         )
 
         SubDivider()
@@ -612,6 +615,18 @@ private fun AccountFormView(
     val uiState by viewModel.uiState.collectAsState()
     var serverURL by remember(uiState.apiBaseUrl) { mutableStateOf(uiState.apiBaseUrl) }
     var serverSavedNotice by remember { mutableStateOf(false) }
+    var pollingMinutesText by remember(uiState.notificationPollingMinutes) {
+        mutableStateOf(uiState.notificationPollingMinutes.toString())
+    }
+    var pollingSavedNotice by remember { mutableStateOf(false) }
+
+    fun savePollingMinutes() {
+        val trimmed = pollingMinutesText.trim()
+        val parsed = trimmed.toIntOrNull() ?: 5
+        viewModel.updateNotificationPollingMinutes(parsed)
+        pollingMinutesText = maxOf(1, parsed).toString()
+        pollingSavedNotice = true
+    }
 
     Column(
         modifier = Modifier
@@ -654,6 +669,40 @@ private fun AccountFormView(
                     viewModel.setApiBaseUrl(serverURL)
                     serverSavedNotice = true
                 }
+            )
+        }
+
+        SubDivider()
+
+        SubFormField(
+            label = "Notifications polling (minutes)",
+            placeholder = "5",
+            value = pollingMinutesText,
+            onValueChange = {
+                pollingMinutesText = it
+                pollingSavedNotice = false
+            },
+            keyboardType = KeyboardType.Number,
+            onSubmit = { savePollingMinutes() }
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (pollingSavedNotice) {
+                Text(
+                    text = "Saved polling interval.",
+                    fontFamily = Route159FontFamily,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp,
+                    color = SubTheme.gray
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            SubSubmitButton(
+                title = "Save Interval",
+                onClick = { savePollingMinutes() }
             )
         }
 

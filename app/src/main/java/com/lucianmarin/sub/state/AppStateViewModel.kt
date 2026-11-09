@@ -18,7 +18,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -40,11 +42,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
 
 data class AppUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val apiBaseUrl: String = APIClient.DEFAULT_BASE_URL,
+    val notificationPollingMinutes: Int = SessionStorage.DEFAULT_POLLING_MINUTES,
     val authToken: String? = null,
     val currentUser: SubUser? = null,
     val selectedSection: SidebarSection = SidebarSection.TRENDING,
@@ -109,21 +114,25 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
 
     private var pollingJob: Job? = null
-    private var lastKnownActivity: Int = 0
-    private var lastKnownMessages: Int = 0
-    private var hasCompletedInitialPoll: Boolean = false
+    private var viewChangeNotificationJob: Job? = null
 
     init {
         NotificationHelper.createNotificationChannels(application)
 
         val token = storage.getAuthToken()
         val savedUser = storage.getSavedUser()
+        val savedPollingMinutes = storage.getNotificationPollingMinutes()
         val savedMessagesSubtab = storage.getLastMessagesSubtab()
         val savedTrendingSubtab = storage.getLastTrendingSubtab()
         api.authToken = token
-        val cachedNotifs = api.getCachedNotifications() ?: SubNotifications()
+        val isAuthed = !token.isNullOrBlank() && savedUser != null
+        val cachedNotifs = if (isAuthed) {
+            storage.getSavedNotifications() ?: api.getCachedNotifications() ?: SubNotifications()
+        } else {
+            SubNotifications()
+        }
 
-        val initialSection = if (!token.isNullOrBlank() && savedUser != null) {
+        val initialSection = if (isAuthed) {
             SidebarSection.FEED
         } else {
             SidebarSection.TRENDING
@@ -131,6 +140,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
 
         _uiState.update {
             it.copy(
+                notificationPollingMinutes = savedPollingMinutes,
                 authToken = token,
                 currentUser = savedUser,
                 notifications = cachedNotifs,
@@ -143,8 +153,6 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val savedTheme = storage.getThemeMode()
             val savedBaseUrl = storage.getApiBaseUrl()
-            lastKnownActivity = storage.getLastUnreadNotifications()
-            lastKnownMessages = storage.getLastUnreadMessages()
             api.baseUrl = savedBaseUrl
 
             _uiState.update {
@@ -155,13 +163,11 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 )
             }
 
-            if (!token.isNullOrBlank() && savedUser != null) {
-                refreshNotifications()
+            if (isAuthed) {
                 refreshCurrentUserProfile()
-                NotificationHelper.schedulePeriodicWork(getApplication())
+                startNotificationPolling()
+                NotificationHelper.schedulePeriodicWork(getApplication(), savedPollingMinutes)
             }
-
-            startNotificationPolling()
         }
     }
 
@@ -175,12 +181,29 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
     fun setApiBaseUrl(url: String) {
         val normalized = APIClient.normalizeBaseUrl(url)
         api.baseUrl = normalized
-        _uiState.update { it.copy(apiBaseUrl = normalized) }
+        _uiState.update {
+            it.copy(
+                apiBaseUrl = normalized,
+                reloadTrigger = it.reloadTrigger + 1
+            )
+        }
         viewModelScope.launch {
             storage.setApiBaseUrl(normalized)
+            if (_uiState.value.isAuthenticated) {
+                fetchAndApplyNotifications()
+            }
         }
     }
 
+    fun updateNotificationPollingMinutes(minutes: Int) {
+        val clamped = maxOf(1, minutes)
+        storage.setNotificationPollingMinutes(clamped)
+        _uiState.update { it.copy(notificationPollingMinutes = clamped) }
+        if (_uiState.value.isAuthenticated) {
+            startNotificationPolling()
+            NotificationHelper.schedulePeriodicWork(getApplication(), clamped)
+        }
+    }
 
     fun applyAuth(token: String, user: SubUser, email: String? = null) {
         val mergedUser = if (!email.isNullOrBlank() && user.email.isBlank()) {
@@ -191,7 +214,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
         storage.setAuthToken(token)
         storage.setSavedUser(mergedUser)
         api.authToken = token
-        val cachedNotifs = api.getCachedNotifications() ?: SubNotifications()
+        val cachedNotifs = storage.getSavedNotifications() ?: api.getCachedNotifications() ?: SubNotifications()
         _uiState.update {
             it.copy(
                 authToken = token,
@@ -202,8 +225,12 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 selectedSection = SidebarSection.FEED
             )
         }
-        NotificationHelper.schedulePeriodicWork(getApplication())
-        refreshNotifications()
+        persistNotifications(cachedNotifs)
+        startNotificationPolling()
+        NotificationHelper.schedulePeriodicWork(
+            getApplication(),
+            _uiState.value.notificationPollingMinutes
+        )
     }
 
     fun updateCurrentUser(user: SubUser, email: String? = null) {
@@ -221,16 +248,15 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
 
 
     fun logout() {
+        pollingJob?.cancel()
+        pollingJob = null
+        viewChangeNotificationJob?.cancel()
+        viewChangeNotificationJob = null
         storage.clearCache()
         storage.setAuthToken(null)
         storage.setSavedUser(null)
+        storage.setSavedNotifications(null)
         api.authToken = null
-        lastKnownActivity = 0
-        lastKnownMessages = 0
-        hasCompletedInitialPoll = false
-        viewModelScope.launch {
-            storage.saveLastUnreadCounts(0, 0)
-        }
         NotificationHelper.cancelPeriodicWork(getApplication())
 
         _uiState.update {
@@ -245,15 +271,21 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun clearNotificationCount(section: SidebarSection) {
+        viewChangeNotificationJob?.cancel()
+        val current = _uiState.value.notifications
+        val updated = when (section) {
+            SidebarSection.FOLLOWERS -> current.copy(followers = 0)
+            SidebarSection.MENTIONS -> current.copy(mentions = 0)
+            SidebarSection.MESSAGES -> current.copy(messages = 0)
+            SidebarSection.REPLIES -> current.copy(replies = 0)
+            else -> return
+        }
+        _uiState.update { it.copy(notifications = updated) }
+    }
+
     fun selectSection(section: SidebarSection) {
         val current = _uiState.value
-        val updatedNotifs = when (section) {
-            SidebarSection.FOLLOWERS -> current.notifications.copy(followers = 0)
-            SidebarSection.MENTIONS -> current.notifications.copy(mentions = 0)
-            SidebarSection.MESSAGES -> current.notifications.copy(messages = 0)
-            SidebarSection.REPLIES -> current.notifications.copy(replies = 0)
-            else -> current.notifications
-        }
 
         val updatedMessagesSubtab = if (section in SidebarSection.messagesSubtabs) {
             storage.setLastMessagesSubtab(section)
@@ -274,7 +306,6 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 it.copy(
                     lastMessagesSubtab = updatedMessagesSubtab,
                     lastTrendingSubtab = updatedTrendingSubtab,
-                    notifications = updatedNotifs,
                     reloadTrigger = it.reloadTrigger + 1
                 )
             }
@@ -285,72 +316,83 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                     lastMessagesSubtab = updatedMessagesSubtab,
                     lastTrendingSubtab = updatedTrendingSubtab,
                     navigationPath = emptyList(),
-                    activeConversationHasMessages = null,
-                    notifications = updatedNotifs
+                    activeConversationHasMessages = null
                 )
             }
         }
-        refreshNotifications()
+        refreshNotificationsOnViewChange()
     }
 
     fun openReply(id: Int) {
+        var changed = false
         _uiState.update { state ->
             val currentTop = state.navigationPath.lastOrNull()
             if (currentTop is NavigationDestination.ReplyDetail && currentTop.id == id) {
                 state
             } else {
+                changed = true
                 state.copy(
                     activeConversationHasMessages = null,
                     navigationPath = state.navigationPath + NavigationDestination.ReplyDetail(id)
                 )
             }
         }
+        if (changed) refreshNotificationsOnViewChange()
     }
 
     fun openMember(username: String) {
         val clean = username.trimStart('@').trim().lowercase()
         if (clean.isEmpty()) return
+        var changed = false
         _uiState.update { current ->
             val currentTop = current.navigationPath.lastOrNull()
             if (currentTop is NavigationDestination.Member && currentTop.username.equals(clean, ignoreCase = true)) {
                 current
             } else {
+                changed = true
                 current.copy(
                     activeConversationHasMessages = null,
                     navigationPath = current.navigationPath + NavigationDestination.Member(clean)
                 )
             }
         }
+        if (changed) refreshNotificationsOnViewChange()
     }
 
     fun openOptions() {
+        var changed = false
         _uiState.update { current ->
             val currentTop = current.navigationPath.lastOrNull()
             if (currentTop is NavigationDestination.Options) {
                 current
             } else {
+                changed = true
                 current.copy(
                     activeConversationHasMessages = null,
                     navigationPath = current.navigationPath + NavigationDestination.Options
                 )
             }
         }
+        if (changed) refreshNotificationsOnViewChange()
     }
 
     fun openConversation(username: String) {
         val clean = username.trimStart('@').trim().lowercase()
         if (clean.isEmpty()) return
+        var changed = false
         _uiState.update { current ->
             val currentTop = current.navigationPath.lastOrNull()
             if (currentTop is NavigationDestination.Conversation && currentTop.username.equals(clean, ignoreCase = true)) {
                 current
             } else {
+                changed = true
                 current.copy(
                     activeConversationHasMessages = null,
                     navigationPath = current.navigationPath + NavigationDestination.Conversation(clean)
                 )
             }
         }
+        if (changed) refreshNotificationsOnViewChange()
     }
 
     fun setActiveConversationHasMessages(hasMessages: Boolean?) {
@@ -358,17 +400,20 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun openEditEntry(entry: SubEntry) {
+        var changed = false
         _uiState.update { current ->
             val currentTop = current.navigationPath.lastOrNull()
             if (currentTop is NavigationDestination.EditEntry && currentTop.entry.id == entry.id) {
                 current
             } else {
+                changed = true
                 current.copy(
                     activeConversationHasMessages = null,
                     navigationPath = current.navigationPath + NavigationDestination.EditEntry(entry)
                 )
             }
         }
+        if (changed) refreshNotificationsOnViewChange()
     }
 
     fun openDiscoverSearch(query: String) {
@@ -380,6 +425,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 searchRequestedQuery = query
             )
         }
+        refreshNotificationsOnViewChange()
     }
 
     fun openPeopleSearch(query: String) {
@@ -391,6 +437,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 searchRequestedQuery = query
             )
         }
+        refreshNotificationsOnViewChange()
     }
 
     fun consumeSearchRequestedQuery() {
@@ -408,21 +455,41 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 activeConversationHasMessages = if (topIsConv) it.activeConversationHasMessages else null
             )
         }
+        refreshNotificationsOnViewChange()
         return true
+    }
+
+    fun refreshNotificationsOnViewChange() {
+        if (!_uiState.value.isAuthenticated) return
+        viewChangeNotificationJob?.cancel()
+        viewChangeNotificationJob = viewModelScope.launch {
+            fetchAndApplyNotifications()
+        }
     }
 
     fun refreshNotifications() {
         if (!_uiState.value.isAuthenticated) return
         viewModelScope.launch {
-            try {
-                val notifs = api.fetchNotifications()
-                handleFetchedNotifications(notifs)
-            } catch (e: APIException) {
-                if (e.statusCode == 401) {
-                    logout()
-                }
-            } catch (_: Exception) {
+            fetchAndApplyNotifications()
+        }
+    }
+
+    private suspend fun fetchAndApplyNotifications() {
+        if (!_uiState.value.isAuthenticated) return
+        try {
+            val latest = NotificationHelper.pollAndDeliverNotifications(
+                context = getApplication(),
+                api = api,
+                storage = storage
+            )
+            if (_uiState.value.isAuthenticated) {
+                _uiState.update { it.copy(notifications = latest) }
             }
+        } catch (e: APIException) {
+            if (e.statusCode == 401) {
+                logout()
+            }
+        } catch (_: Exception) {
         }
     }
 
@@ -446,65 +513,26 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun handleFetchedNotifications(notifs: SubNotifications) {
-        val newActivity = notifs.activityCount
-        val newMessages = notifs.messages
-
-        if (hasCompletedInitialPoll && _uiState.value.isAuthenticated) {
-            if (newActivity > lastKnownActivity) {
-                val delta = newActivity - lastKnownActivity
-                NotificationHelper.sendLocalNotification(
-                    context = getApplication(),
-                    channelId = NotificationHelper.CHANNEL_ACTIVITY,
-                    notificationId = NotificationHelper.NOTIF_ID_ACTIVITY,
-                    title = "Subreply Activity",
-                    body = if (delta == 1) {
-                        "You have 1 new notification."
-                    } else {
-                        "You have $delta new notifications."
-                    },
-                    destination = "replies"
-                )
-            }
-            if (newMessages > lastKnownMessages) {
-                val delta = newMessages - lastKnownMessages
-                NotificationHelper.sendLocalNotification(
-                    context = getApplication(),
-                    channelId = NotificationHelper.CHANNEL_MESSAGES,
-                    notificationId = NotificationHelper.NOTIF_ID_MESSAGES,
-                    title = "Subreply Messages",
-                    body = if (delta == 1) {
-                        "You received a new direct message."
-                    } else {
-                        "You have $delta unread direct messages."
-                    },
-                    destination = "messages"
-                )
-            }
+    private fun persistNotifications(notifications: SubNotifications) {
+        if (_uiState.value.isAuthenticated) {
+            storage.setSavedNotifications(notifications)
+        } else {
+            storage.setSavedNotifications(null)
         }
-
-        lastKnownActivity = newActivity
-        lastKnownMessages = newMessages
-        hasCompletedInitialPoll = true
-        viewModelScope.launch {
-            storage.saveLastUnreadCounts(newActivity, newMessages)
-        }
-
-        _uiState.update { it.copy(notifications = notifs) }
     }
 
+    /**
+     * Background polling loop on `/api/notifications` matching `startNotificationPolling()`
+     * in `../macreply/Sources/Macreply/State/AppState.swift`.
+     */
     private fun startNotificationPolling() {
         pollingJob?.cancel()
+        if (!_uiState.value.isAuthenticated) return
         pollingJob = viewModelScope.launch {
-            while (isActive) {
-                delay(30_000L)
-                if (_uiState.value.isAuthenticated) {
-                    try {
-                        val notifs = api.fetchNotifications()
-                        handleFetchedNotifications(notifs)
-                    } catch (_: Exception) {
-                    }
-                }
+            while (isActive && _uiState.value.isAuthenticated) {
+                fetchAndApplyNotifications()
+                val intervalMs = maxOf(1, _uiState.value.notificationPollingMinutes) * 60_000L
+                delay(intervalMs)
             }
         }
     }
@@ -514,6 +542,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
 
         val destExtra = intent.getStringExtra(NotificationHelper.EXTRA_DESTINATION)
         if (!destExtra.isNullOrBlank()) {
+            intent.removeExtra(NotificationHelper.EXTRA_DESTINATION)
             SidebarSection.fromKey(destExtra)?.let { selectSection(it) }
             return
         }
@@ -554,9 +583,37 @@ object NotificationHelper {
     const val CHANNEL_ACTIVITY = "subreply_activity"
     const val CHANNEL_MESSAGES = "subreply_messages"
     const val EXTRA_DESTINATION = "subreply_destination"
-    const val NOTIF_ID_ACTIVITY = 1001
+    const val NOTIF_ID_REPLIES = 1001
     const val NOTIF_ID_MESSAGES = 1002
+    const val NOTIF_ID_FOLLOWERS = 1003
+    const val NOTIF_ID_MENTIONS = 1004
     private const val WORK_NAME = "subreply_notification_poll"
+    private const val ONE_TIME_WORK_NAME = "subreply_notification_poll_onetime"
+    private val pollMutex = Mutex()
+
+    /**
+     * Fetches `/api/notifications`, diffs strictly against the previous `/api/notifications`
+     * value stored in [SessionStorage.getSavedNotifications], persists the latest response,
+     * and delivers notifications only for categories whose server count increased.
+     */
+    suspend fun pollAndDeliverNotifications(
+        context: Context,
+        api: APIClient,
+        storage: SessionStorage
+    ): SubNotifications = pollMutex.withLock {
+        val previous = storage.getSavedNotifications() ?: SubNotifications()
+        val latest = api.fetchNotifications()
+        val alerts = latest.newNotifications(since = previous)
+        storage.setSavedNotifications(latest)
+        for (alert in alerts) {
+            sendSectionNotification(
+                context = context,
+                section = alert.section,
+                message = alert.message
+            )
+        }
+        latest
+    }
 
     fun createNotificationChannels(context: Context) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
@@ -580,6 +637,28 @@ object NotificationHelper {
 
         manager.createNotificationChannel(activityChannel)
         manager.createNotificationChannel(messagesChannel)
+    }
+
+    fun sendSectionNotification(
+        context: Context,
+        section: SidebarSection,
+        message: String
+    ) {
+        val (channelId, notificationId) = when (section) {
+            SidebarSection.MESSAGES -> CHANNEL_MESSAGES to NOTIF_ID_MESSAGES
+            SidebarSection.REPLIES -> CHANNEL_ACTIVITY to NOTIF_ID_REPLIES
+            SidebarSection.FOLLOWERS -> CHANNEL_ACTIVITY to NOTIF_ID_FOLLOWERS
+            SidebarSection.MENTIONS -> CHANNEL_ACTIVITY to NOTIF_ID_MENTIONS
+            else -> CHANNEL_ACTIVITY to NOTIF_ID_REPLIES
+        }
+        sendLocalNotification(
+            context = context,
+            channelId = channelId,
+            notificationId = notificationId,
+            title = "Subreply",
+            body = message,
+            destination = section.key
+        )
     }
 
     fun sendLocalNotification(
@@ -624,24 +703,58 @@ object NotificationHelper {
         }
     }
 
-    fun schedulePeriodicWork(context: Context) {
+    fun schedulePeriodicWork(
+        context: Context,
+        intervalMinutes: Int = SessionStorage.DEFAULT_POLLING_MINUTES
+    ) {
+        val clampedMinutes = maxOf(1, intervalMinutes).toLong()
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-        val request = PeriodicWorkRequestBuilder<NotificationPollWorker>(15, TimeUnit.MINUTES)
+        val periodicRequest = PeriodicWorkRequestBuilder<NotificationPollWorker>(
+            maxOf(15L, clampedMinutes),
+            TimeUnit.MINUTES
+        )
+            .setInitialDelay(clampedMinutes, TimeUnit.MINUTES)
             .setConstraints(constraints)
             .build()
 
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+        val workManager = WorkManager.getInstance(context)
+        workManager.enqueueUniquePeriodicWork(
             WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
-            request
+            ExistingPeriodicWorkPolicy.UPDATE,
+            periodicRequest
+        )
+
+        if (clampedMinutes < 15L) {
+            scheduleNextOneTimePoll(context, clampedMinutes)
+        } else {
+            workManager.cancelUniqueWork(ONE_TIME_WORK_NAME)
+        }
+    }
+
+    fun scheduleNextOneTimePoll(context: Context, delayMinutes: Long) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val oneTimeRequest = OneTimeWorkRequestBuilder<NotificationPollWorker>()
+            .setInitialDelay(maxOf(1L, delayMinutes), TimeUnit.MINUTES)
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            ONE_TIME_WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            oneTimeRequest
         )
     }
 
     fun cancelPeriodicWork(context: Context) {
-        WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+        val workManager = WorkManager.getInstance(context)
+        workManager.cancelUniqueWork(WORK_NAME)
+        workManager.cancelUniqueWork(ONE_TIME_WORK_NAME)
     }
 }
 
@@ -661,44 +774,16 @@ class NotificationPollWorker(
         )
 
         return try {
-            val notifs = api.fetchNotifications()
-            val prevNotifs = storage.getLastUnreadNotifications()
-            val prevMsgs = storage.getLastUnreadMessages()
-            val newNotifs = notifs.activityCount
-            val newMsgs = notifs.messages
+            NotificationHelper.pollAndDeliverNotifications(
+                context = applicationContext,
+                api = api,
+                storage = storage
+            )
 
-            if (newNotifs > prevNotifs) {
-                val delta = newNotifs - prevNotifs
-                NotificationHelper.sendLocalNotification(
-                    context = applicationContext,
-                    channelId = NotificationHelper.CHANNEL_ACTIVITY,
-                    notificationId = NotificationHelper.NOTIF_ID_ACTIVITY,
-                    title = "Subreply Activity",
-                    body = if (delta == 1) {
-                        "You have 1 new notification."
-                    } else {
-                        "You have $delta new notifications."
-                    },
-                    destination = "replies"
-                )
+            val pollingMinutes = storage.getNotificationPollingMinutes().toLong()
+            if (pollingMinutes < 15L) {
+                NotificationHelper.scheduleNextOneTimePoll(applicationContext, pollingMinutes)
             }
-            if (newMsgs > prevMsgs) {
-                val delta = newMsgs - prevMsgs
-                NotificationHelper.sendLocalNotification(
-                    context = applicationContext,
-                    channelId = NotificationHelper.CHANNEL_MESSAGES,
-                    notificationId = NotificationHelper.NOTIF_ID_MESSAGES,
-                    title = "Subreply Messages",
-                    body = if (delta == 1) {
-                        "You received a new direct message."
-                    } else {
-                        "You have $delta unread direct messages."
-                    },
-                    destination = "messages"
-                )
-            }
-
-            storage.saveLastUnreadCounts(newNotifs, newMsgs)
             Result.success()
         } catch (_: Exception) {
             Result.retry()

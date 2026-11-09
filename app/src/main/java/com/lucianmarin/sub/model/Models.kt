@@ -224,6 +224,11 @@ data class SubChat(
     val timestamp: String = ""
 )
 
+data class NotificationAlert(
+    val section: SidebarSection,
+    val message: String
+)
+
 @Serializable
 data class SubNotifications(
     val followers: Int = 0,
@@ -233,6 +238,29 @@ data class SubNotifications(
 ) {
     val activityCount: Int
         get() = followers + mentions + replies
+
+    val total: Int
+        get() = followers + mentions + replies + messages
+
+    /**
+     * Matches `SubNotifications.newNotifications(since:)` in `../macreply/Sources/Macreply/Models/Models.swift`.
+     */
+    fun newNotifications(since: SubNotifications): List<NotificationAlert> {
+        val alerts = mutableListOf<NotificationAlert>()
+        if (replies > since.replies) {
+            alerts.add(NotificationAlert(SidebarSection.REPLIES, "Reply received"))
+        }
+        if (messages > since.messages) {
+            alerts.add(NotificationAlert(SidebarSection.MESSAGES, "Message received"))
+        }
+        if (followers > since.followers) {
+            alerts.add(NotificationAlert(SidebarSection.FOLLOWERS, "Follower received"))
+        }
+        if (mentions > since.mentions) {
+            alerts.add(NotificationAlert(SidebarSection.MENTIONS, "Mention received"))
+        }
+        return alerts
+    }
 
     companion object {
         fun capBadge(count: Int): String? {
@@ -344,7 +372,7 @@ enum class SidebarSection(
         )
 
         val messagesSubtabs: List<SidebarSection> = listOf(
-            MESSAGES, REPLIES, MENTIONS
+            MESSAGES, MENTIONS, REPLIES
         )
 
         val trendingSubtabs: List<SidebarSection> = listOf(

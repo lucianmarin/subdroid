@@ -115,6 +115,7 @@ fun FeedStreamScreen(
             canLoadMore = res.entries.size >= pageSize
             isLoading = false
             if (section == SidebarSection.MENTIONS || section == SidebarSection.REPLIES) {
+                viewModel.clearNotificationCount(section)
                 viewModel.refreshNotifications()
             }
         } catch (err: Exception) {

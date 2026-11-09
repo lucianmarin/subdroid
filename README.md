@@ -164,9 +164,10 @@ All icons are rendered from the subsetted Google **Material Symbols Rounded** Tr
 ### 4.6 Options, Auth & About (`OptionsScreen.kt` & `AuthScreens.kt`)
 
 - **`OptionsScreen`**:
-  - `SubMenuHeader` with `Profile` (`PATCH /api/profile`), `Details` (`PATCH /api/details`), and `Account` (API Base URL, Theme selector: `System` / `Light` / `Dark`, and `Logout`).
+  - `SubMenuHeader` with `Profile` (`PATCH /api/profile`), `Details` (`PATCH /api/details`), and `Account` (API Base URL, Notifications polling interval in minutes (`default = 5`, clamped to `>= 1`), Theme selector: `System` / `Light` / `Dark`, and `Logout`).
 - **`LoginScreen`**:
   - `SubMenuHeader` with `Login` (`POST /api/login`) and `Register` (`POST /api/register`).
 - **`AboutScreen`**:
   - `SubMenuHeader` with `About` (features, privacy rules, API Server URL setting), `Privacy`, `Safety`, and `Terms`.
+
 

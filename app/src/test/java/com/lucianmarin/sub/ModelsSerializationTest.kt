@@ -260,4 +260,32 @@ class ModelsSerializationTest {
         val unauthedState = authedState.copy(authToken = null, currentUser = null)
         assertEquals(SidebarSection.TRENDING, unauthedState.targetSectionForBottomNav(SidebarSection.TRENDING))
     }
+
+    @Test
+    fun detectsNewNotificationsByCategoryAndDefaultsPollingInterval() {
+        val initial = SubNotifications(followers = 1, mentions = 0, messages = 2, replies = 1)
+        assertEquals(4, initial.total)
+
+        val unchanged = SubNotifications(followers = 1, mentions = 0, messages = 2, replies = 1)
+        assertTrue(unchanged.newNotifications(since = initial).isEmpty())
+
+        val decreased = SubNotifications(followers = 0, mentions = 0, messages = 1, replies = 0)
+        assertTrue(decreased.newNotifications(since = initial).isEmpty())
+
+        val increased = SubNotifications(followers = 2, mentions = 1, messages = 3, replies = 4)
+        val alerts = increased.newNotifications(since = initial)
+        assertEquals(4, alerts.size)
+        assertEquals(SidebarSection.REPLIES, alerts[0].section)
+        assertEquals("Reply received", alerts[0].message)
+        assertEquals(SidebarSection.MESSAGES, alerts[1].section)
+        assertEquals("Message received", alerts[1].message)
+        assertEquals(SidebarSection.FOLLOWERS, alerts[2].section)
+        assertEquals("Follower received", alerts[2].message)
+        assertEquals(SidebarSection.MENTIONS, alerts[3].section)
+        assertEquals("Mention received", alerts[3].message)
+
+        val defaultState = AppUiState()
+        assertEquals(5, defaultState.notificationPollingMinutes)
+    }
 }
+

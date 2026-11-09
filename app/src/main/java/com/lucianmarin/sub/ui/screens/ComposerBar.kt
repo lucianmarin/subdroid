@@ -450,8 +450,8 @@ fun SectionSubtabsHeader(
 ) {
     val subtabs = when (section) {
         SidebarSection.MESSAGES,
-        SidebarSection.REPLIES,
-        SidebarSection.MENTIONS -> SidebarSection.messagesSubtabs
+        SidebarSection.MENTIONS,
+        SidebarSection.REPLIES -> SidebarSection.messagesSubtabs
 
         SidebarSection.TRENDING,
         SidebarSection.SAVED,

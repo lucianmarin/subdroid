@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.lucianmarin.sub.model.SidebarSection
+import com.lucianmarin.sub.model.SubNotifications
 import com.lucianmarin.sub.model.SubUser
 import com.lucianmarin.sub.network.APIClient
 import com.lucianmarin.sub.ui.theme.ThemeMode
@@ -19,10 +20,14 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class SessionStorage(private val context: Context) : APIClient.EndpointCacheStore {
 
     companion object {
+        const val DEFAULT_POLLING_MINUTES = 5
+
         private const val SECURE_PREFS_NAME = "subdroid_secure_session"
         private const val CACHE_PREFS_NAME = "subdroid_endpoint_cache"
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_SAVED_USER_JSON = "saved_user_json"
+        private const val KEY_SAVED_NOTIFICATIONS_JSON = "saved_notifications_json"
+        private const val KEY_NOTIFICATION_POLLING_MINUTES = "notification_polling_minutes"
         private const val KEY_LAST_MESSAGES_SUBTAB = "last_messages_subtab"
         private const val KEY_LAST_TRENDING_SUBTAB = "last_trending_subtab"
 
@@ -89,6 +94,43 @@ class SessionStorage(private val context: Context) : APIClient.EndpointCacheStor
             }
         }
         editor.apply()
+    }
+
+    fun getSavedNotifications(): SubNotifications? {
+        val raw = securePrefs.getString(KEY_SAVED_NOTIFICATIONS_JSON, null)
+            ?: cachePrefs.getString("/notifications", null)
+            ?: return null
+        return try {
+            APIClient.json.decodeFromString(SubNotifications.serializer(), raw)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun setSavedNotifications(notifications: SubNotifications?) {
+        val editor = securePrefs.edit()
+        if (notifications == null) {
+            editor.remove(KEY_SAVED_NOTIFICATIONS_JSON)
+            cachePrefs.edit().remove("/notifications").apply()
+        } else {
+            try {
+                val encoded = APIClient.json.encodeToString(SubNotifications.serializer(), notifications)
+                editor.putString(KEY_SAVED_NOTIFICATIONS_JSON, encoded)
+                cachePrefs.edit().putString("/notifications", encoded).apply()
+            } catch (_: Exception) {
+            }
+        }
+        editor.apply()
+    }
+
+    fun getNotificationPollingMinutes(): Int {
+        val saved = securePrefs.getInt(KEY_NOTIFICATION_POLLING_MINUTES, DEFAULT_POLLING_MINUTES)
+        return if (saved > 0) saved else DEFAULT_POLLING_MINUTES
+    }
+
+    fun setNotificationPollingMinutes(minutes: Int) {
+        val clamped = maxOf(1, minutes)
+        securePrefs.edit().putInt(KEY_NOTIFICATION_POLLING_MINUTES, clamped).apply()
     }
 
     fun getLastMessagesSubtab(): SidebarSection {
