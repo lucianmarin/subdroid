@@ -165,7 +165,7 @@ fun MessagesInboxScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(modifier = Modifier.height(SubTheme.bottomSpacerHeight))
     }
 }
 
@@ -203,7 +203,7 @@ private fun ChatInboxRowView(
                 text = "message",
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.gray,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -217,7 +217,7 @@ private fun ChatInboxRowView(
                 text = if (chat.seen) "read" else "unread",
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = if (chat.seen) SubTheme.silver else SubTheme.accent
             )
 
@@ -227,7 +227,7 @@ private fun ChatInboxRowView(
                 text = chat.timestamp,
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.silver,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -465,7 +465,7 @@ fun ConversationScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(modifier = Modifier.height(SubTheme.bottomSpacerHeight))
     }
 }
 
@@ -519,7 +519,7 @@ private fun ConversationMessageRowView(
                     text = if (message.seen) "read" else "unread",
                     fontFamily = Route159FontFamily,
                     fontSize = 13.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 20.sp,
                     color = if (message.seen) SubTheme.gray else SubTheme.accent
                 )
 
@@ -529,7 +529,7 @@ private fun ConversationMessageRowView(
                             text = "unsend",
                             fontFamily = Route159FontFamily,
                             fontSize = 13.sp,
-                            lineHeight = 16.sp,
+                            lineHeight = 20.sp,
                             color = SubTheme.gray,
                             modifier = Modifier.clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -545,7 +545,7 @@ private fun ConversationMessageRowView(
                                 text = "undo",
                                 fontFamily = Route159FontFamily,
                                 fontSize = 13.sp,
-                                lineHeight = 16.sp,
+                                lineHeight = 20.sp,
                                 color = SubTheme.accent,
                                 modifier = Modifier.clickable(
                                     interactionSource = remember { MutableInteractionSource() },
@@ -558,7 +558,7 @@ private fun ConversationMessageRowView(
                                 text = if (unsendState == UnsendButtonState.RETRY) "retry" else "yes",
                                 fontFamily = Route159FontFamily,
                                 fontSize = 13.sp,
-                                lineHeight = 16.sp,
+                                lineHeight = 20.sp,
                                 color = SubTheme.alert,
                                 modifier = Modifier.clickable(
                                     interactionSource = remember { MutableInteractionSource() },
@@ -586,7 +586,7 @@ private fun ConversationMessageRowView(
                             text = "unsent",
                             fontFamily = Route159FontFamily,
                             fontSize = 13.sp,
-                            lineHeight = 16.sp,
+                            lineHeight = 20.sp,
                             color = SubTheme.silver
                         )
                     }
@@ -598,7 +598,7 @@ private fun ConversationMessageRowView(
                     text = message.timestamp,
                     fontFamily = Route159FontFamily,
                     fontSize = 13.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 20.sp,
                     color = SubTheme.silver
                 )
             }

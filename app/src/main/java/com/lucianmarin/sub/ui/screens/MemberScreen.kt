@@ -269,7 +269,7 @@ fun MemberScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(modifier = Modifier.height(SubTheme.bottomSpacerHeight))
     }
 }
 
@@ -424,7 +424,7 @@ fun UserRowView(
                     text = rightDateLabel,
                     fontFamily = Route159FontFamily,
                     fontSize = 13.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 20.sp,
                     color = SubTheme.silver,
                     modifier = Modifier.clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -463,7 +463,7 @@ fun UserRowView(
                         text = host,
                         fontFamily = Route159FontFamily,
                         fontSize = 13.sp,
-                        lineHeight = 16.sp,
+                        lineHeight = 20.sp,
                         color = SubTheme.gray,
                         modifier = Modifier.clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -480,7 +480,7 @@ fun UserRowView(
                         text = "~ ${userAge}y old",
                         fontFamily = Route159FontFamily,
                         fontSize = 13.sp,
-                        lineHeight = 16.sp,
+                        lineHeight = 20.sp,
                         color = SubTheme.gray
                     )
                 }
@@ -491,14 +491,14 @@ fun UserRowView(
                             text = "from",
                             fontFamily = Route159FontFamily,
                             fontSize = 13.sp,
-                            lineHeight = 16.sp,
+                            lineHeight = 20.sp,
                             color = SubTheme.gray
                         )
                         Text(
                             text = city,
                             fontFamily = Route159FontFamily,
                             fontSize = 13.sp,
-                            lineHeight = 16.sp,
+                            lineHeight = 20.sp,
                             color = SubTheme.gray,
                             modifier = Modifier.clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -599,7 +599,7 @@ fun MemberLinksView(
         text = annotated,
         fontFamily = Route159FontFamily,
         fontSize = 13.sp,
-        lineHeight = 16.sp,
+        lineHeight = 20.sp,
         color = grayColor,
         modifier = modifier
             .fillMaxWidth()
@@ -634,7 +634,7 @@ fun MemberStatusRowView(
                 text = "NOTE",
                 fontFamily = Route159FontFamily,
                 fontSize = 12.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.accent,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -647,7 +647,7 @@ fun MemberStatusRowView(
                 text = "EDIT",
                 fontFamily = Route159FontFamily,
                 fontSize = 12.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.gray,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -660,7 +660,7 @@ fun MemberStatusRowView(
                 text = "LOGOUT",
                 fontFamily = Route159FontFamily,
                 fontSize = 12.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.alert,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -674,7 +674,7 @@ fun MemberStatusRowView(
                 text = "MESSAGE",
                 fontFamily = Route159FontFamily,
                 fontSize = 12.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.accent,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -692,7 +692,7 @@ fun MemberStatusRowView(
                 text = if (isFollowing) "UNFOLLOW" else "FOLLOW",
                 fontFamily = Route159FontFamily,
                 fontSize = 12.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = if (isFollowing) SubTheme.gray else SubTheme.accent,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -707,7 +707,7 @@ fun MemberStatusRowView(
                     text = "FOLLOWS YOU",
                     fontFamily = Route159FontFamily,
                     fontSize = 12.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 20.sp,
                     color = SubTheme.silver
                 )
             }

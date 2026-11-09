@@ -172,7 +172,7 @@ fun LoginScreen(
                             text = errorMessage!!,
                             fontFamily = Route159FontFamily,
                             fontSize = 13.sp,
-                            lineHeight = 16.sp,
+                            lineHeight = 20.sp,
                             color = SubTheme.alert
                         )
                     }
@@ -192,7 +192,7 @@ fun LoginScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(modifier = Modifier.height(SubTheme.bottomSpacerHeight))
     }
 }
 
@@ -375,7 +375,7 @@ private fun RegisterFormContent(
                 text = errorMessage!!,
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.alert
             )
         }
@@ -388,7 +388,7 @@ private fun RegisterFormContent(
                 text = "You agree with Privacy, Safety and Terms.",
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.gray,
                 modifier = Modifier
                     .weight(1f)
@@ -520,7 +520,7 @@ fun AboutScreen(
                                     text = "Updated API Server URL.",
                                     fontFamily = Route159FontFamily,
                                     fontSize = 13.sp,
-                                    lineHeight = 16.sp,
+                                    lineHeight = 20.sp,
                                     color = SubTheme.gray
                                 )
                             }
@@ -612,7 +612,7 @@ fun AboutScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(modifier = Modifier.height(SubTheme.bottomSpacerHeight))
     }
 }
 

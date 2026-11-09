@@ -54,8 +54,8 @@ fun SidebarView(
             .shadow(elevation = 4.dp, shape = RoundedCornerShape(10.dp))
             .clip(RoundedCornerShape(10.dp))
             .background(barBg)
-            .padding(horizontal = 6.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(horizontal = 5.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         for (section in uiState.visibleSidebarSections) {
@@ -112,8 +112,8 @@ private fun SidebarIconButton(
 
     Box(
         modifier = Modifier
-            .width(44.dp)
-            .height(34.dp)
+            .width(45.dp)
+            .height(35.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(bgColor)
             .semantics { contentDescription = title }
@@ -127,7 +127,7 @@ private fun SidebarIconButton(
         SubHeroIcon(
             name = iconName,
             tint = iconColor,
-            size = 18.dp
+            size = 19.dp
         )
 
         if (badgeText != null) {

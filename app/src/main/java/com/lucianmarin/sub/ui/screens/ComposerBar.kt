@@ -68,7 +68,7 @@ val TopFormOuterHorizontalPadding = 20.dp
 val TopFormOuterVerticalPadding = 10.dp
 val TopFormInnerHorizontalPadding = 10.dp
 val TopFormInnerVerticalPadding = 8.dp
-val TopFormCornerShape = RoundedCornerShape(10.dp)
+val TopFormCornerShape = RoundedCornerShape(9.dp)
 
 @Composable
 fun topFormTextStyle(color: Color): TextStyle = TextStyle(
@@ -244,7 +244,7 @@ fun ComposerView(
                     ),
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 6.dp, bottom = 5.dp)
+                        .padding(end = 5.dp, bottom = 5.dp)
                 )
             }
         }
@@ -255,7 +255,7 @@ fun ComposerView(
                 style = TextStyle(
                     fontFamily = Route159FontFamily,
                     fontSize = 13.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 20.sp,
                     color = SubTheme.alert
                 )
             )

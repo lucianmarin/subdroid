@@ -52,6 +52,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -163,6 +164,7 @@ object SubTheme {
 
     val accent: Color = Color(0xFF2EB8B8)
     val alert: Color = Color(0xFFFF4500)
+    val bottomSpacerHeight: Dp = 75.dp
 }
 
 private val SubTypography = Typography(

@@ -267,7 +267,7 @@ fun EntryItemView(
                 text = entry.replyButtonLabel(isRootOverride = isRootOverride),
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.gray,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -285,7 +285,7 @@ fun EntryItemView(
                             text = "edit",
                             fontFamily = Route159FontFamily,
                             fontSize = 13.sp,
-                            lineHeight = 16.sp,
+                            lineHeight = 20.sp,
                             color = SubTheme.gray,
                             modifier = Modifier.clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -311,7 +311,7 @@ fun EntryItemView(
                         text = saveLabel,
                         fontFamily = Route159FontFamily,
                         fontSize = 13.sp,
-                        lineHeight = 16.sp,
+                        lineHeight = 20.sp,
                         color = saveColor,
                         modifier = Modifier.clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -342,7 +342,7 @@ fun EntryItemView(
                                 text = "delete",
                                 fontFamily = Route159FontFamily,
                                 fontSize = 13.sp,
-                                lineHeight = 16.sp,
+                                lineHeight = 20.sp,
                                 color = SubTheme.gray,
                                 modifier = Modifier.clickable(
                                     interactionSource = remember { MutableInteractionSource() },
@@ -358,7 +358,7 @@ fun EntryItemView(
                                     text = "undo",
                                     fontFamily = Route159FontFamily,
                                     fontSize = 13.sp,
-                                    lineHeight = 16.sp,
+                                    lineHeight = 20.sp,
                                     color = SubTheme.accent,
                                     modifier = Modifier.clickable(
                                         interactionSource = remember { MutableInteractionSource() },
@@ -371,7 +371,7 @@ fun EntryItemView(
                                     text = if (deleteState == DeleteButtonState.RETRY) "retry" else "yes",
                                     fontFamily = Route159FontFamily,
                                     fontSize = 13.sp,
-                                    lineHeight = 16.sp,
+                                    lineHeight = 20.sp,
                                     color = SubTheme.alert,
                                     modifier = Modifier.clickable(
                                         interactionSource = remember { MutableInteractionSource() },
@@ -394,7 +394,7 @@ fun EntryItemView(
                                 text = "deleted",
                                 fontFamily = Route159FontFamily,
                                 fontSize = 13.sp,
-                                lineHeight = 16.sp,
+                                lineHeight = 20.sp,
                                 color = SubTheme.silver
                             )
                         }
@@ -410,7 +410,7 @@ fun EntryItemView(
                 text = if (entry.edited) "··· ${entry.timestamp}" else entry.timestamp,
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.silver,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },

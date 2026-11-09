@@ -52,9 +52,9 @@ Colors adapt to System, Light, or Dark mode (user-configurable in `Options` $\ri
 
 - **Main Content Area**: `640.dp` max width (`Modifier.widthIn(max = 640.dp)`), centered horizontally, extending full height behind the floating bottom navigation bar.
 - **Floating Bottom Navigation Bar (`SidebarView`)**:
-  - `46.dp` bar height (`34.dp × 34.dp` icon buttons with `4.dp` spacing and `6.dp` padding), `10.dp` corner radius, `4.dp` shadow elevation, `10.dp` bottom margin (`56.dp` total bottom footprint).
+  - `45.dp` bar height (`45.dp × 35.dp` icon buttons with `5.dp` spacing and `5.dp` padding), `10.dp` corner radius, `4.dp` shadow elevation, `15.dp` bottom margin (`60.dp` total bottom footprint).
   - Background is `SubTheme.background` (`#FFFFFF`) in light mode and `SubTheme.whitesmoke` (`#181818`) in dark mode.
-  - Scrollable screens include a `72.dp` bottom spacer so content scrolls cleanly above the floating bar.
+  - Scrollable screens include a `60.dp` (`SubTheme.bottomSpacerHeight`) bottom spacer so content scrolls cleanly above the floating bar.
 - **Top Forms & Subtab Headers (`56.dp` uniform height)**:
   - `ComposerView`, `PlaceholderBannerView`, and `SearchQueryBar`: `20.dp` horizontal / `10.dp` vertical outer padding + `36.dp` single-line inner box (`10.dp` horizontal / `8.dp` vertical inner padding around `20.sp` text, `6.dp` corner radius) = `56.dp` total height.
   - `SubMenuHeader`: `20.dp` horizontal / `10.dp` vertical outer padding + `36.dp` inner row (`10.dp` top / `6.dp` bottom inner padding around `20.sp` text with a `10.dp × 2.dp` `#2EB8B8` active highlight bar offset `3.dp` below the text box) = `56.dp` total height.

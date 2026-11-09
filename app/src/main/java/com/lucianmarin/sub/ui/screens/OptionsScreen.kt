@@ -97,7 +97,7 @@ fun OptionsScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(modifier = Modifier.height(SubTheme.bottomSpacerHeight))
     }
 }
 
@@ -128,7 +128,7 @@ fun SubFormField(
                 text = label,
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.primary
             )
             if (required) {
@@ -136,7 +136,7 @@ fun SubFormField(
                     text = "*",
                     fontFamily = Route159FontFamily,
                     fontSize = 13.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 20.sp,
                     color = SubTheme.gray
                 )
             }
@@ -145,9 +145,9 @@ fun SubFormField(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
+                .clip(TopFormCornerShape)
                 .background(if (isErrorBg) SubTheme.redsmoke else SubTheme.whitesmoke)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .padding(horizontal = TopFormInnerHorizontalPadding, vertical = TopFormInnerVerticalPadding),
             contentAlignment = Alignment.CenterStart
         ) {
             if (value.isEmpty() && placeholder.isNotEmpty()) {
@@ -375,7 +375,7 @@ private fun ProfileFormView(
                 text = errorMessage!!,
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.alert
             )
         }
@@ -389,7 +389,7 @@ private fun ProfileFormView(
                     text = statusMessage!!,
                     fontFamily = Route159FontFamily,
                     fontSize = 13.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 20.sp,
                     color = SubTheme.gray
                 )
             }
@@ -577,7 +577,7 @@ private fun DetailsFormView(
                 text = errorMessage!!,
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.alert
             )
         }
@@ -591,7 +591,7 @@ private fun DetailsFormView(
                     text = statusMessage!!,
                     fontFamily = Route159FontFamily,
                     fontSize = 13.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 20.sp,
                     color = SubTheme.gray
                 )
             }
@@ -643,7 +643,7 @@ private fun AccountFormView(
                     text = "Saved API endpoint.",
                     fontFamily = Route159FontFamily,
                     fontSize = 13.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 20.sp,
                     color = SubTheme.gray
                 )
             }
@@ -664,7 +664,7 @@ private fun AccountFormView(
                 text = "Theme",
                 fontFamily = Route159FontFamily,
                 fontSize = 13.sp,
-                lineHeight = 16.sp,
+                lineHeight = 20.sp,
                 color = SubTheme.primary
             )
             Row(
@@ -714,7 +714,7 @@ private fun AccountFormView(
                         text = "Sign out and clear stored token.",
                         fontFamily = Route159FontFamily,
                         fontSize = 13.sp,
-                        lineHeight = 16.sp,
+                        lineHeight = 20.sp,
                         color = SubTheme.gray
                     )
                 }

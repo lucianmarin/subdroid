@@ -285,7 +285,7 @@ fun FeedStreamScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(modifier = Modifier.height(SubTheme.bottomSpacerHeight))
     }
 }
 

@@ -75,7 +75,7 @@ fun MainScaffold(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .then(if (isKeyboardVisible) Modifier else Modifier.navigationBarsPadding())
-                .padding(bottom = 10.dp)
+                .padding(bottom = 15.dp)
         )
     }
 }
