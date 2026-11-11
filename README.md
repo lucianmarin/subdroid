@@ -1,5 +1,11 @@
 # Subdroid — Subreply for Android
 
+![feature](feature.png)
+
+Light              |Dark
+:-----------------:|:---------------:
+![light](light.jpg)|![dark](dark.jpg)
+
 Native Android client for [Subreply](https://subreply.com) (`subreply.com/api`), built with **Kotlin** and **Jetpack Compose**.
 
 ---
@@ -169,5 +175,3 @@ All icons are rendered from the subsetted Google **Material Symbols Rounded** Tr
   - `SubMenuHeader` with `Login` (`POST /api/login`) and `Register` (`POST /api/register`).
 - **`AboutScreen`**:
   - `SubMenuHeader` with `About` (features, privacy rules, API Server URL setting), `Privacy`, `Safety`, and `Terms`.
-
-
