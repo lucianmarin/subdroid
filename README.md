@@ -69,8 +69,8 @@ Colors adapt to System, Light, or Dark mode (user-configurable in `Options` $\ri
 
 ### 2.4 Google Material Symbols Font (`SubIcons.kt`)
 
-All icons are rendered from the subsetted Google **Material Symbols Rounded** TrueType font (`res/font/material_symbols_rounded.ttf`, `20pt Medium`, `7,824` bytes) containing the 19 icons used in the UI:
-`account_circle`, `alternate_email`, `bolt`, `bookmark`, `cancel`, `chat`, `chat_bubble`, `group`, `info`, `language`, `lock`, `move_down`, `move_up`, `person_add`, `reply`, `search`, `sms`, `trending_up`, `tune`.
+All icons are rendered from the subsetted Google **Material Symbols Rounded** TrueType font (`res/font/material_symbols_rounded.ttf`, `20pt Medium`, `8,100` bytes) containing the 20 icons used in the UI:
+`account_circle`, `alternate_email`, `bolt`, `bookmark`, `cancel`, `chat`, `chat_bubble`, `feedback`, `group`, `info`, `language`, `lock`, `move_down`, `move_up`, `person_add`, `reply`, `search`, `sms`, `trending_up`, `tune`.
 
 ---
 
@@ -102,7 +102,7 @@ All icons are rendered from the subsetted Google **Material Symbols Rounded** Tr
    - `DISCOVER` (`"discover"`, `"Discover"`, icon `"language"`)
 
 3. **Dynamic Floating Bar Icons**:
-   - When inside a 1-on-1 `Conversation`, the `MESSAGES` button displays `"chat"` if the conversation has messages or `"sms"` if empty.
+   - When inside a 1-on-1 `Conversation`, the `MESSAGES` button displays `"feedback"` if the conversation is blocked (waiting for a response), `"chat"` if the conversation has messages, or `"sms"` if empty.
    - When a subtab is active under `MESSAGES` (`REPLIES`, `MENTIONS`), `TRENDING` (`SAVED`, `FOLLOWERS`, `FOLLOWING`), or `LOGIN` (`REGISTER`), the corresponding bottom bar button displays the active subtab's icon (`"reply"`, `"alternate_email"`, `"bookmark"`, `"move_down"`, `"move_up"`, `"person_add"`).
 
 4. **Selection, Badges & Push Navigation**:

@@ -68,10 +68,11 @@ fun SidebarView(
 
             val iconName = when {
                 section == SidebarSection.MESSAGES && isInConversation -> {
-                    when (uiState.activeConversationHasMessages) {
-                        true -> "chat"
-                        false -> "sms"
-                        null -> targetSection.iconName
+                    when {
+                        uiState.activeConversationIsBlocked -> "feedback"
+                        uiState.activeConversationHasMessages == true -> "chat"
+                        uiState.activeConversationHasMessages == false -> "sms"
+                        else -> targetSection.iconName
                     }
                 }
                 section == SidebarSection.LOGIN &&

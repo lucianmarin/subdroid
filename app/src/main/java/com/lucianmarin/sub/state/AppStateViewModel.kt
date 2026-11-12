@@ -57,6 +57,7 @@ data class AppUiState(
     val lastTrendingSubtab: SidebarSection = SidebarSection.TRENDING,
     val navigationPath: List<NavigationDestination> = emptyList(),
     val activeConversationHasMessages: Boolean? = null,
+    val activeConversationIsBlocked: Boolean = false,
     val notifications: SubNotifications = SubNotifications(),
     val searchRequestedQuery: String? = null,
     val reloadTrigger: Int = 0,
@@ -222,6 +223,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 notifications = cachedNotifs,
                 navigationPath = emptyList(),
                 activeConversationHasMessages = null,
+                activeConversationIsBlocked = false,
                 selectedSection = SidebarSection.FEED
             )
         }
@@ -266,6 +268,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 notifications = SubNotifications(),
                 navigationPath = emptyList(),
                 activeConversationHasMessages = null,
+                activeConversationIsBlocked = false,
                 selectedSection = SidebarSection.TRENDING
             )
         }
@@ -316,7 +319,8 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                     lastMessagesSubtab = updatedMessagesSubtab,
                     lastTrendingSubtab = updatedTrendingSubtab,
                     navigationPath = emptyList(),
-                    activeConversationHasMessages = null
+                    activeConversationHasMessages = null,
+                    activeConversationIsBlocked = false
                 )
             }
         }
@@ -333,6 +337,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 changed = true
                 state.copy(
                     activeConversationHasMessages = null,
+                    activeConversationIsBlocked = false,
                     navigationPath = state.navigationPath + NavigationDestination.ReplyDetail(id)
                 )
             }
@@ -352,6 +357,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 changed = true
                 current.copy(
                     activeConversationHasMessages = null,
+                    activeConversationIsBlocked = false,
                     navigationPath = current.navigationPath + NavigationDestination.Member(clean)
                 )
             }
@@ -369,6 +375,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 changed = true
                 current.copy(
                     activeConversationHasMessages = null,
+                    activeConversationIsBlocked = false,
                     navigationPath = current.navigationPath + NavigationDestination.Options
                 )
             }
@@ -388,6 +395,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 changed = true
                 current.copy(
                     activeConversationHasMessages = null,
+                    activeConversationIsBlocked = false,
                     navigationPath = current.navigationPath + NavigationDestination.Conversation(clean)
                 )
             }
@@ -397,6 +405,10 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
 
     fun setActiveConversationHasMessages(hasMessages: Boolean?) {
         _uiState.update { it.copy(activeConversationHasMessages = hasMessages) }
+    }
+
+    fun setActiveConversationIsBlocked(isBlocked: Boolean) {
+        _uiState.update { it.copy(activeConversationIsBlocked = isBlocked) }
     }
 
     fun openEditEntry(entry: SubEntry) {
@@ -409,6 +421,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 changed = true
                 current.copy(
                     activeConversationHasMessages = null,
+                    activeConversationIsBlocked = false,
                     navigationPath = current.navigationPath + NavigationDestination.EditEntry(entry)
                 )
             }
@@ -421,6 +434,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
             it.copy(
                 navigationPath = emptyList(),
                 activeConversationHasMessages = null,
+                activeConversationIsBlocked = false,
                 selectedSection = SidebarSection.DISCOVER,
                 searchRequestedQuery = query
             )
@@ -433,6 +447,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
             it.copy(
                 navigationPath = emptyList(),
                 activeConversationHasMessages = null,
+                activeConversationIsBlocked = false,
                 selectedSection = SidebarSection.PEOPLE,
                 searchRequestedQuery = query
             )
@@ -452,7 +467,8 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
         _uiState.update {
             it.copy(
                 navigationPath = newPath,
-                activeConversationHasMessages = if (topIsConv) it.activeConversationHasMessages else null
+                activeConversationHasMessages = if (topIsConv) it.activeConversationHasMessages else null,
+                activeConversationIsBlocked = if (topIsConv) it.activeConversationIsBlocked else false
             )
         }
         refreshNotificationsOnViewChange()

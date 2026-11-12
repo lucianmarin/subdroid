@@ -379,7 +379,9 @@ fun ConversationScreen(
                 if (res.status == "cleared") {
                     clearState = ClearConversationState.CLEARED
                     messages = emptyList()
+                    isBlockedFromServer = false
                     viewModel.setActiveConversationHasMessages(false)
+                    viewModel.setActiveConversationIsBlocked(false)
                 } else {
                     clearState = ClearConversationState.RETRY
                 }
@@ -387,6 +389,10 @@ fun ConversationScreen(
                 clearState = ClearConversationState.RETRY
             }
         }
+    }
+
+    LaunchedEffect(isBlockedWaitingForResponse) {
+        viewModel.setActiveConversationIsBlocked(isBlockedWaitingForResponse)
     }
 
     LaunchedEffect(username, uiState.authToken) {
@@ -399,6 +405,7 @@ fun ConversationScreen(
     DisposableEffect(username) {
         onDispose {
             viewModel.setActiveConversationHasMessages(null)
+            viewModel.setActiveConversationIsBlocked(false)
         }
     }
 
