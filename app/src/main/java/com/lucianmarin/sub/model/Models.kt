@@ -265,7 +265,7 @@ data class SubNotifications(
     companion object {
         fun capBadge(count: Int): String? {
             if (count <= 0) return null
-            if (count > 99) return "99+"
+            if (count > 9) return "+"
             return count.toString()
         }
     }
@@ -391,4 +391,3 @@ sealed interface NavigationDestination {
     data class EditEntry(val entry: SubEntry) : NavigationDestination
     data object Options : NavigationDestination
 }
-

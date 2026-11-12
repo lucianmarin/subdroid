@@ -408,7 +408,7 @@ fun <T> SubMenuHeader(
                         )
                         if (count > 0) {
                             Text(
-                                text = if (count > 99) "99+" else count.toString(),
+                                text = count.toString(),
                                 style = TextStyle(
                                     fontFamily = Route159FontFamily,
                                     fontWeight = FontWeight.Bold,
@@ -471,5 +471,3 @@ fun SubSubmitButton(
         )
     }
 }
-
-
