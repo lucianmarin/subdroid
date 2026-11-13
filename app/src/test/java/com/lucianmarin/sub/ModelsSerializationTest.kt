@@ -287,5 +287,68 @@ class ModelsSerializationTest {
         val defaultState = AppUiState()
         assertEquals(5, defaultState.notificationPollingMinutes)
     }
+
+    @Test
+    fun stepsThroughSectionsAndSubtabsWithoutWrappingOnHorizontalSwipe() {
+        val authedStart = AppUiState(
+            authToken = "token123",
+            currentUser = SubUser(username = "lucian"),
+            selectedSection = SidebarSection.FEED
+        )
+
+        // Swiping right at the first tab does not wrap around
+        org.junit.Assert.assertNull(authedStart.adjacentSwipeSection(forward = false))
+
+        // Swiping left steps through all bottom tabs and subtabs in order
+        val expectedAuthedOrder = listOf(
+            SidebarSection.FEED,
+            SidebarSection.MESSAGES,
+            SidebarSection.MENTIONS,
+            SidebarSection.REPLIES,
+            SidebarSection.TRENDING,
+            SidebarSection.SAVED,
+            SidebarSection.FOLLOWERS,
+            SidebarSection.FOLLOWING,
+            SidebarSection.PEOPLE,
+            SidebarSection.DISCOVER
+        )
+        assertEquals(expectedAuthedOrder, authedStart.swipeableSections)
+
+        var state = authedStart
+        for (i in 0 until expectedAuthedOrder.lastIndex) {
+            val next = state.adjacentSwipeSection(forward = true)
+            assertEquals(expectedAuthedOrder[i + 1], next)
+            state = state.copy(selectedSection = next!!)
+        }
+        // Swiping left at the last tab does not wrap around
+        org.junit.Assert.assertNull(state.adjacentSwipeSection(forward = true))
+
+        // Swiping right steps back through subtabs and bottom tabs
+        for (i in expectedAuthedOrder.lastIndex downTo 1) {
+            val prev = state.adjacentSwipeSection(forward = false)
+            assertEquals(expectedAuthedOrder[i - 1], prev)
+            state = state.copy(selectedSection = prev!!)
+        }
+        org.junit.Assert.assertNull(state.adjacentSwipeSection(forward = false))
+
+        // Pushed navigation destination disables section swipe
+        val inDetail = authedStart.copy(
+            navigationPath = listOf(com.lucianmarin.sub.model.NavigationDestination.ReplyDetail(42))
+        )
+        org.junit.Assert.assertNull(inDetail.adjacentSwipeSection(forward = true))
+        org.junit.Assert.assertNull(inDetail.adjacentSwipeSection(forward = false))
+
+        // Unauthenticated swipe order
+        val unauthedStart = AppUiState(selectedSection = SidebarSection.ABOUT)
+        val expectedUnauthedOrder = listOf(
+            SidebarSection.ABOUT,
+            SidebarSection.LOGIN,
+            SidebarSection.REGISTER,
+            SidebarSection.TRENDING,
+            SidebarSection.PEOPLE,
+            SidebarSection.DISCOVER
+        )
+        assertEquals(expectedUnauthedOrder, unauthedStart.swipeableSections)
+    }
 }
 

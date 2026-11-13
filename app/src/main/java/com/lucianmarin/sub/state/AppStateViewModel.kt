@@ -77,6 +77,22 @@ data class AppUiState(
             SidebarSection.unauthenticatedSections
         }
 
+    val swipeableSections: List<SidebarSection>
+        get() = if (isAuthenticated) {
+            SidebarSection.authenticatedSwipeOrder
+        } else {
+            SidebarSection.unauthenticatedSwipeOrder
+        }
+
+    fun adjacentSwipeSection(forward: Boolean): SidebarSection? {
+        if (navigationPath.isNotEmpty()) return null
+        val order = swipeableSections
+        val currentIndex = order.indexOf(selectedSection)
+        if (currentIndex == -1) return null
+        val targetIndex = if (forward) currentIndex + 1 else currentIndex - 1
+        return order.getOrNull(targetIndex)
+    }
+
     fun targetSectionForBottomNav(section: SidebarSection): SidebarSection = when (section) {
         SidebarSection.MESSAGES -> if (isAuthenticated && lastMessagesSubtab in SidebarSection.messagesSubtabs) {
             lastMessagesSubtab
@@ -325,6 +341,12 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
             }
         }
         refreshNotificationsOnViewChange()
+    }
+
+    fun swipeSection(forward: Boolean): Boolean {
+        val next = _uiState.value.adjacentSwipeSection(forward) ?: return false
+        selectSection(next)
+        return true
     }
 
     fun openReply(id: Int) {

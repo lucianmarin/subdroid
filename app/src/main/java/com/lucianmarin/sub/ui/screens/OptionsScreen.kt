@@ -50,6 +50,7 @@ import com.lucianmarin.sub.ui.theme.SubMenuHeader
 import com.lucianmarin.sub.ui.theme.SubSubmitButton
 import com.lucianmarin.sub.ui.theme.SubTheme
 import com.lucianmarin.sub.ui.theme.ThemeMode
+import com.lucianmarin.sub.ui.theme.subHorizontalSwipe
 import kotlinx.coroutines.launch
 
 private enum class OptionsTab(val label: String) {
@@ -74,6 +75,30 @@ fun OptionsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(SubTheme.background)
+            .subHorizontalSwipe(
+                onSwipeNext = {
+                    val tabs = OptionsTab.entries
+                    val idx = tabs.indexOf(activeTab)
+                    if (idx < tabs.lastIndex) {
+                        activeTab = tabs[idx + 1]
+                        viewModel.refreshNotificationsOnViewChange()
+                        true
+                    } else {
+                        false
+                    }
+                },
+                onSwipePrevious = {
+                    val tabs = OptionsTab.entries
+                    val idx = tabs.indexOf(activeTab)
+                    if (idx > 0) {
+                        activeTab = tabs[idx - 1]
+                        viewModel.refreshNotificationsOnViewChange()
+                        true
+                    } else {
+                        false
+                    }
+                }
+            )
             .verticalScroll(rememberScrollState())
     ) {
         Spacer(

@@ -32,6 +32,7 @@ import com.lucianmarin.sub.ui.screens.OptionsScreen
 import com.lucianmarin.sub.ui.screens.PeopleListScreen
 import com.lucianmarin.sub.ui.screens.ReplyDetailScreen
 import com.lucianmarin.sub.ui.theme.SubTheme
+import com.lucianmarin.sub.ui.theme.subHorizontalSwipe
 
 /**
  * Main application scaffold with a 640dp max-width main content area and a floating bottom navigation bar.
@@ -60,6 +61,13 @@ fun MainScaffold(
                 .widthIn(max = 640.dp)
                 .fillMaxSize()
                 .align(Alignment.TopCenter)
+                .subHorizontalSwipe(
+                    enabled = uiState.navigationPath.isEmpty() &&
+                        uiState.selectedSection != SidebarSection.ABOUT &&
+                        uiState.selectedSection != SidebarSection.OPTIONS,
+                    onSwipeNext = { viewModel.swipeSection(forward = true) },
+                    onSwipePrevious = { viewModel.swipeSection(forward = false) }
+                )
         ) {
             MainContentRouter(
                 uiState = uiState,

@@ -51,6 +51,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -65,6 +68,7 @@ import com.lucianmarin.sub.ui.screens.TopFormCornerShape
 import com.lucianmarin.sub.ui.screens.TopFormInnerVerticalPadding
 import com.lucianmarin.sub.ui.screens.TopFormOuterHorizontalPadding
 import com.lucianmarin.sub.ui.screens.TopFormOuterVerticalPadding
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -491,3 +495,73 @@ fun SubSubmitButton(
         )
     }
 }
+
+/**
+ * Detects a horizontal left/right swipe gesture without interfering with vertical scrolling
+ * or taps. Swiping left (`dx < 0`) invokes `onSwipeNext`, swiping right (`dx > 0`) invokes `onSwipePrevious`.
+ */
+fun Modifier.subHorizontalSwipe(
+    enabled: Boolean = true,
+    onSwipeNext: () -> Boolean,
+    onSwipePrevious: () -> Boolean
+): Modifier {
+    if (!enabled) return this
+    return this.pointerInput(Unit) {
+        val touchSlop = viewConfiguration.touchSlop
+        val minSwipeDistancePx = 56.dp.toPx()
+
+        awaitPointerEventScope {
+            while (true) {
+                val downEvent = awaitPointerEvent(PointerEventPass.Initial)
+                val firstDown = downEvent.changes.firstOrNull { it.pressed && !it.previousPressed }
+                    ?: continue
+
+                val pointerId = firstDown.id
+                val startPos = firstDown.position
+                var currentPos = startPos
+                var lockedVertical = false
+                var lockedHorizontal = false
+
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    val change = event.changes.firstOrNull { it.id == pointerId } ?: break
+
+                    currentPos = change.position
+                    val dx = currentPos.x - startPos.x
+                    val dy = currentPos.y - startPos.y
+
+                    if (!lockedHorizontal && !lockedVertical) {
+                        if (abs(dy) > touchSlop && abs(dy) >= abs(dx)) {
+                            lockedVertical = true
+                        } else if (abs(dx) > touchSlop && abs(dx) > abs(dy) * 1.35f) {
+                            lockedHorizontal = true
+                        }
+                    }
+
+                    if (lockedHorizontal) {
+                        change.consume()
+                    }
+
+                    if (change.changedToUpIgnoreConsumed() || !change.pressed) {
+                        if (lockedHorizontal && abs(dx) >= minSwipeDistancePx && abs(dx) > abs(dy) * 1.35f) {
+                            val handled = if (dx < 0f) {
+                                onSwipeNext()
+                            } else {
+                                onSwipePrevious()
+                            }
+                            if (handled) {
+                                change.consume()
+                            }
+                        }
+                        break
+                    }
+
+                    if (lockedVertical) {
+                        break
+                    }
+                }
+            }
+        }
+    }
+}
+

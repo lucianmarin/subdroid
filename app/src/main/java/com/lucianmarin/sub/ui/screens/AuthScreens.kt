@@ -37,6 +37,7 @@ import com.lucianmarin.sub.ui.theme.SubDivider
 import com.lucianmarin.sub.ui.theme.SubMenuHeader
 import com.lucianmarin.sub.ui.theme.SubSubmitButton
 import com.lucianmarin.sub.ui.theme.SubTheme
+import com.lucianmarin.sub.ui.theme.subHorizontalSwipe
 import kotlinx.coroutines.launch
 
 enum class LoginTab(val label: String) {
@@ -439,6 +440,28 @@ fun AboutScreen(
         modifier = modifier
             .fillMaxSize()
             .background(SubTheme.background)
+            .subHorizontalSwipe(
+                onSwipeNext = {
+                    val tabs = AboutTab.entries
+                    val idx = tabs.indexOf(activeTab)
+                    if (idx < tabs.lastIndex) {
+                        activeTab = tabs[idx + 1]
+                        true
+                    } else {
+                        viewModel.swipeSection(forward = true)
+                    }
+                },
+                onSwipePrevious = {
+                    val tabs = AboutTab.entries
+                    val idx = tabs.indexOf(activeTab)
+                    if (idx > 0) {
+                        activeTab = tabs[idx - 1]
+                        true
+                    } else {
+                        viewModel.swipeSection(forward = false)
+                    }
+                }
+            )
             .verticalScroll(rememberScrollState())
     ) {
         Spacer(

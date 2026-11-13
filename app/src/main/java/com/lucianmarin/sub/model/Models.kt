@@ -379,6 +379,22 @@ enum class SidebarSection(
             TRENDING, SAVED, FOLLOWERS, FOLLOWING
         )
 
+        val authenticatedSwipeOrder: List<SidebarSection> = listOf(
+            FEED,
+            MESSAGES, MENTIONS, REPLIES,
+            TRENDING, SAVED, FOLLOWERS, FOLLOWING,
+            PEOPLE,
+            DISCOVER
+        )
+
+        val unauthenticatedSwipeOrder: List<SidebarSection> = listOf(
+            ABOUT,
+            LOGIN, REGISTER,
+            TRENDING,
+            PEOPLE,
+            DISCOVER
+        )
+
         fun fromKey(key: String?): SidebarSection? =
             entries.firstOrNull { it.key.equals(key, ignoreCase = true) }
     }
