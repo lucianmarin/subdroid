@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -117,6 +118,11 @@ fun LoginScreen(
             .background(SubTheme.background)
             .verticalScroll(rememberScrollState())
     ) {
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+        )
         SubMenuHeader(
             items = LoginTab.entries.map { it.label to it },
             selected = activeTab,
@@ -435,6 +441,11 @@ fun AboutScreen(
             .background(SubTheme.background)
             .verticalScroll(rememberScrollState())
     ) {
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+        )
         SubMenuHeader(
             items = AboutTab.entries.map { it.label to it },
             selected = activeTab,

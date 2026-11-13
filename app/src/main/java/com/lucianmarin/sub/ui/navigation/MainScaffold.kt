@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -54,7 +53,6 @@ fun MainScaffold(
         modifier = Modifier
             .fillMaxSize()
             .background(SubTheme.background)
-            .statusBarsPadding()
             .imePadding()
     ) {
         Box(

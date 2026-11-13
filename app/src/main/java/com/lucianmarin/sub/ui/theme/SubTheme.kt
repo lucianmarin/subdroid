@@ -2,6 +2,7 @@ package com.lucianmarin.sub.ui.theme
 
 import android.app.Activity
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,11 +13,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -246,6 +249,14 @@ fun SubreplyTheme(
         SideEffect {
             val window = (view.context as? Activity)?.window ?: return@SideEffect
             window.setBackgroundDrawable(ColorDrawable(palette.background.toArgb()))
+            @Suppress("DEPRECATION")
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = android.graphics.Color.TRANSPARENT
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isStatusBarContrastEnforced = false
+                window.isNavigationBarContrastEnforced = false
+            }
             val insetsController = WindowCompat.getInsetsController(window, view)
             insetsController.isAppearanceLightStatusBars = !isDark
             insetsController.isAppearanceLightNavigationBars = !isDark
@@ -343,7 +354,9 @@ fun SubPullToRefreshColumn(
                 isRefreshing = isRefreshing,
                 containerColor = SubTheme.whitesmoke,
                 color = SubTheme.accent,
-                modifier = Modifier.align(Alignment.TopCenter)
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
             )
         }
     ) {
@@ -351,7 +364,14 @@ fun SubPullToRefreshColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
-            content = content
+            content = {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                )
+                content()
+            }
         )
     }
 }
