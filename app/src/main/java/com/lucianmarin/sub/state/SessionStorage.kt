@@ -28,8 +28,6 @@ class SessionStorage(private val context: Context) : APIClient.EndpointCacheStor
         private const val KEY_SAVED_USER_JSON = "saved_user_json"
         private const val KEY_SAVED_NOTIFICATIONS_JSON = "saved_notifications_json"
         private const val KEY_NOTIFICATION_POLLING_MINUTES = "notification_polling_minutes"
-        private const val KEY_LAST_MESSAGES_SUBTAB = "last_messages_subtab"
-        private const val KEY_LAST_TRENDING_SUBTAB = "last_trending_subtab"
 
         private val PREF_THEME_MODE = stringPreferencesKey("theme_mode")
         private val PREF_API_BASE_URL = stringPreferencesKey("api_base_url")
@@ -131,38 +129,6 @@ class SessionStorage(private val context: Context) : APIClient.EndpointCacheStor
     fun setNotificationPollingMinutes(minutes: Int) {
         val clamped = maxOf(1, minutes)
         securePrefs.edit().putInt(KEY_NOTIFICATION_POLLING_MINUTES, clamped).apply()
-    }
-
-    fun getLastMessagesSubtab(): SidebarSection {
-        val key = securePrefs.getString(KEY_LAST_MESSAGES_SUBTAB, null)
-        val section = SidebarSection.fromKey(key)
-        return if (section != null && section in SidebarSection.messagesSubtabs) {
-            section
-        } else {
-            SidebarSection.MESSAGES
-        }
-    }
-
-    fun setLastMessagesSubtab(section: SidebarSection) {
-        if (section in SidebarSection.messagesSubtabs) {
-            securePrefs.edit().putString(KEY_LAST_MESSAGES_SUBTAB, section.key).apply()
-        }
-    }
-
-    fun getLastTrendingSubtab(): SidebarSection {
-        val key = securePrefs.getString(KEY_LAST_TRENDING_SUBTAB, null)
-        val section = SidebarSection.fromKey(key)
-        return if (section != null && section in SidebarSection.trendingSubtabs) {
-            section
-        } else {
-            SidebarSection.TRENDING
-        }
-    }
-
-    fun setLastTrendingSubtab(section: SidebarSection) {
-        if (section in SidebarSection.trendingSubtabs) {
-            securePrefs.edit().putString(KEY_LAST_TRENDING_SUBTAB, section.key).apply()
-        }
     }
 
     suspend fun getThemeMode(): ThemeMode {

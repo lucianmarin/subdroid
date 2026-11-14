@@ -103,7 +103,7 @@ All icons are rendered from the subsetted Google **Material Symbols Rounded** Tr
 
 3. **Dynamic Floating Bar Icons**:
    - When inside a 1-on-1 `Conversation`, the `MESSAGES` button displays `"feedback"` if the conversation is blocked (waiting for a response), `"chat"` if the conversation has messages, or `"sms"` if empty.
-   - When a subtab is active under `MESSAGES` (`REPLIES`, `MENTIONS`), `TRENDING` (`SAVED`, `FOLLOWERS`, `FOLLOWING`), or `LOGIN` (`REGISTER`), the corresponding bottom bar button displays the active subtab's icon (`"reply"`, `"alternate_email"`, `"bookmark"`, `"move_down"`, `"move_up"`, `"person_add"`).
+   - When a subtab is active under `MESSAGES` (`REPLIES`, `MENTIONS`), `TRENDING` (`SAVED`, `FOLLOWERS`, `FOLLOWING`), or `LOGIN` (`REGISTER`), the corresponding bottom bar button displays the active subtab's icon (`"reply"`, `"alternate_email"`, `"bookmark"`, `"move_down"`, `"move_up"`, `"person_add"`). When another section is active, bottom bar buttons display the first subtab's icon and tapping them navigates to the first subtab.
 
 4. **Selection, Badges & Push Navigation**:
    - Active button (`isSelected == true`): `SubTheme.accent` (`#2EB8B8`) rounded background (`6.dp` radius) with `SubTheme.background` icon and badge text.

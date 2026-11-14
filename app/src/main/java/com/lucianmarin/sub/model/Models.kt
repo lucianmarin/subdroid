@@ -379,6 +379,14 @@ enum class SidebarSection(
             TRENDING, SAVED, FOLLOWERS, FOLLOWING
         )
 
+        val loginSubtabs: List<SidebarSection> = listOf(
+            LOGIN, REGISTER
+        )
+
+        val subtabsWithIcons: Set<SidebarSection> = (
+            messagesSubtabs + trendingSubtabs + loginSubtabs
+        ).toSet()
+
         val authenticatedSwipeOrder: List<SidebarSection> = listOf(
             FEED,
             MESSAGES, MENTIONS, REPLIES,

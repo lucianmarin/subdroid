@@ -240,25 +240,33 @@ class ModelsSerializationTest {
     }
 
     @Test
-    fun remembersLastSubtabForMessagesAndTrendingInBottomNav() {
-        val authedState = AppUiState(
+    fun usesFirstSubtabAsSectionTabAndUpdatesIconOnlyWhenSubtabActive() {
+        val onMentions = AppUiState(
             authToken = "token123",
             currentUser = SubUser(username = "lucian"),
-            selectedSection = SidebarSection.FEED,
-            lastMessagesSubtab = SidebarSection.MENTIONS,
-            lastTrendingSubtab = SidebarSection.SAVED
+            selectedSection = SidebarSection.MENTIONS
         )
 
-        val messagesTarget = authedState.targetSectionForBottomNav(SidebarSection.MESSAGES)
-        val trendingTarget = authedState.targetSectionForBottomNav(SidebarSection.TRENDING)
+        // Tapping a bottom nav section always targets its first subtab
+        assertEquals(SidebarSection.MESSAGES, onMentions.targetSectionForBottomNav(SidebarSection.MESSAGES))
+        assertEquals(SidebarSection.TRENDING, onMentions.targetSectionForBottomNav(SidebarSection.TRENDING))
 
-        assertEquals(SidebarSection.MENTIONS, messagesTarget)
-        assertEquals("alternate_email", messagesTarget.iconName)
-        assertEquals(SidebarSection.SAVED, trendingTarget)
-        assertEquals("bookmark", trendingTarget.iconName)
+        // Active subtab updates the icon of its parent bottom nav section, while inactive sections show the first subtab icon
+        assertEquals("alternate_email", onMentions.bottomNavIconName(SidebarSection.MESSAGES))
+        assertEquals("trending_up", onMentions.bottomNavIconName(SidebarSection.TRENDING))
 
-        val unauthedState = authedState.copy(authToken = null, currentUser = null)
-        assertEquals(SidebarSection.TRENDING, unauthedState.targetSectionForBottomNav(SidebarSection.TRENDING))
+        val onSaved = onMentions.copy(selectedSection = SidebarSection.SAVED)
+        assertEquals("chat_bubble", onSaved.bottomNavIconName(SidebarSection.MESSAGES))
+        assertEquals("bookmark", onSaved.bottomNavIconName(SidebarSection.TRENDING))
+
+        val onRegister = onMentions.copy(
+            authToken = null,
+            currentUser = null,
+            selectedSection = SidebarSection.REGISTER
+        )
+        assertEquals(SidebarSection.LOGIN, onRegister.targetSectionForBottomNav(SidebarSection.LOGIN))
+        assertEquals("person_add", onRegister.bottomNavIconName(SidebarSection.LOGIN))
+        assertEquals("trending_up", onRegister.bottomNavIconName(SidebarSection.TRENDING))
     }
 
     @Test
@@ -323,12 +331,28 @@ class ModelsSerializationTest {
         // Swiping left at the last tab does not wrap around
         org.junit.Assert.assertNull(state.adjacentSwipeSection(forward = true))
 
-        // Swiping right steps back through subtabs and bottom tabs
-        for (i in expectedAuthedOrder.lastIndex downTo 1) {
-            val prev = state.adjacentSwipeSection(forward = false)
-            assertEquals(expectedAuthedOrder[i - 1], prev)
-            state = state.copy(selectedSection = prev!!)
-        }
+        // Swiping right into a section with subtabs lands on the first subtab of that section,
+        // while swiping right within the same section steps back through its subtabs
+        assertEquals(SidebarSection.PEOPLE, state.adjacentSwipeSection(forward = false))
+        state = state.copy(selectedSection = SidebarSection.PEOPLE)
+        assertEquals(SidebarSection.TRENDING, state.adjacentSwipeSection(forward = false))
+
+        state = state.copy(selectedSection = SidebarSection.FOLLOWING)
+        assertEquals(SidebarSection.FOLLOWERS, state.adjacentSwipeSection(forward = false))
+        state = state.copy(selectedSection = SidebarSection.FOLLOWERS)
+        assertEquals(SidebarSection.SAVED, state.adjacentSwipeSection(forward = false))
+        state = state.copy(selectedSection = SidebarSection.SAVED)
+        assertEquals(SidebarSection.TRENDING, state.adjacentSwipeSection(forward = false))
+        state = state.copy(selectedSection = SidebarSection.TRENDING)
+        assertEquals(SidebarSection.MESSAGES, state.adjacentSwipeSection(forward = false))
+
+        state = state.copy(selectedSection = SidebarSection.REPLIES)
+        assertEquals(SidebarSection.MENTIONS, state.adjacentSwipeSection(forward = false))
+        state = state.copy(selectedSection = SidebarSection.MENTIONS)
+        assertEquals(SidebarSection.MESSAGES, state.adjacentSwipeSection(forward = false))
+        state = state.copy(selectedSection = SidebarSection.MESSAGES)
+        assertEquals(SidebarSection.FEED, state.adjacentSwipeSection(forward = false))
+        state = state.copy(selectedSection = SidebarSection.FEED)
         org.junit.Assert.assertNull(state.adjacentSwipeSection(forward = false))
 
         // Pushed navigation destination disables section swipe
@@ -349,6 +373,14 @@ class ModelsSerializationTest {
             SidebarSection.DISCOVER
         )
         assertEquals(expectedUnauthedOrder, unauthedStart.swipeableSections)
+        assertEquals(
+            SidebarSection.LOGIN,
+            unauthedStart.copy(selectedSection = SidebarSection.TRENDING).adjacentSwipeSection(forward = false)
+        )
+        assertEquals(
+            SidebarSection.LOGIN,
+            unauthedStart.copy(selectedSection = SidebarSection.REGISTER).adjacentSwipeSection(forward = false)
+        )
     }
 }
 

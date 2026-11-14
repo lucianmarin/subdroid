@@ -53,8 +53,6 @@ data class AppUiState(
     val authToken: String? = null,
     val currentUser: SubUser? = null,
     val selectedSection: SidebarSection = SidebarSection.TRENDING,
-    val lastMessagesSubtab: SidebarSection = SidebarSection.MESSAGES,
-    val lastTrendingSubtab: SidebarSection = SidebarSection.TRENDING,
     val navigationPath: List<NavigationDestination> = emptyList(),
     val activeConversationHasMessages: Boolean? = null,
     val activeConversationIsBlocked: Boolean = false,
@@ -90,21 +88,32 @@ data class AppUiState(
         val currentIndex = order.indexOf(selectedSection)
         if (currentIndex == -1) return null
         val targetIndex = if (forward) currentIndex + 1 else currentIndex - 1
-        return order.getOrNull(targetIndex)
+        val target = order.getOrNull(targetIndex) ?: return null
+        return if (!forward && target.parentBottomSection != selectedSection.parentBottomSection) {
+            target.parentBottomSection
+        } else {
+            target
+        }
     }
 
-    fun targetSectionForBottomNav(section: SidebarSection): SidebarSection = when (section) {
-        SidebarSection.MESSAGES -> if (isAuthenticated && lastMessagesSubtab in SidebarSection.messagesSubtabs) {
-            lastMessagesSubtab
-        } else {
-            SidebarSection.MESSAGES
+    fun targetSectionForBottomNav(section: SidebarSection): SidebarSection =
+        section.parentBottomSection
+
+    fun bottomNavIconName(section: SidebarSection): String {
+        val isInConversation = navigationPath.lastOrNull() is NavigationDestination.Conversation
+        return when {
+            section == SidebarSection.MESSAGES && isInConversation -> {
+                when {
+                    activeConversationIsBlocked -> "feedback"
+                    activeConversationHasMessages == true -> "chat"
+                    activeConversationHasMessages == false -> "sms"
+                    else -> section.iconName
+                }
+            }
+            selectedSection.parentBottomSection == section &&
+                selectedSection in SidebarSection.subtabsWithIcons -> selectedSection.iconName
+            else -> section.iconName
         }
-        SidebarSection.TRENDING -> if (isAuthenticated && lastTrendingSubtab in SidebarSection.trendingSubtabs) {
-            lastTrendingSubtab
-        } else {
-            SidebarSection.TRENDING
-        }
-        else -> section
     }
 
     fun badgeCount(forSection: SidebarSection): Int = when (forSection) {
@@ -139,8 +148,6 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
         val token = storage.getAuthToken()
         val savedUser = storage.getSavedUser()
         val savedPollingMinutes = storage.getNotificationPollingMinutes()
-        val savedMessagesSubtab = storage.getLastMessagesSubtab()
-        val savedTrendingSubtab = storage.getLastTrendingSubtab()
         api.authToken = token
         val isAuthed = !token.isNullOrBlank() && savedUser != null
         val cachedNotifs = if (isAuthed) {
@@ -161,9 +168,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 authToken = token,
                 currentUser = savedUser,
                 notifications = cachedNotifs,
-                selectedSection = initialSection,
-                lastMessagesSubtab = savedMessagesSubtab,
-                lastTrendingSubtab = savedTrendingSubtab
+                selectedSection = initialSection
             )
         }
 
@@ -306,25 +311,9 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
     fun selectSection(section: SidebarSection) {
         val current = _uiState.value
 
-        val updatedMessagesSubtab = if (section in SidebarSection.messagesSubtabs) {
-            storage.setLastMessagesSubtab(section)
-            section
-        } else {
-            current.lastMessagesSubtab
-        }
-
-        val updatedTrendingSubtab = if (section in SidebarSection.trendingSubtabs) {
-            storage.setLastTrendingSubtab(section)
-            section
-        } else {
-            current.lastTrendingSubtab
-        }
-
         if (current.selectedSection == section && current.navigationPath.isEmpty()) {
             _uiState.update {
                 it.copy(
-                    lastMessagesSubtab = updatedMessagesSubtab,
-                    lastTrendingSubtab = updatedTrendingSubtab,
                     reloadTrigger = it.reloadTrigger + 1
                 )
             }
@@ -332,8 +321,6 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
             _uiState.update {
                 it.copy(
                     selectedSection = section,
-                    lastMessagesSubtab = updatedMessagesSubtab,
-                    lastTrendingSubtab = updatedTrendingSubtab,
                     navigationPath = emptyList(),
                     activeConversationHasMessages = null,
                     activeConversationIsBlocked = false

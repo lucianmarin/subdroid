@@ -66,21 +66,7 @@ fun SidebarView(
                 else -> activeParentSection == section
             }
 
-            val iconName = when {
-                section == SidebarSection.MESSAGES && isInConversation -> {
-                    when {
-                        uiState.activeConversationIsBlocked -> "feedback"
-                        uiState.activeConversationHasMessages == true -> "chat"
-                        uiState.activeConversationHasMessages == false -> "sms"
-                        else -> targetSection.iconName
-                    }
-                }
-                section == SidebarSection.LOGIN &&
-                    uiState.selectedSection == SidebarSection.REGISTER -> {
-                    uiState.selectedSection.iconName
-                }
-                else -> targetSection.iconName
-            }
+            val iconName = uiState.bottomNavIconName(section)
 
             SidebarIconButton(
                 title = targetSection.title,
