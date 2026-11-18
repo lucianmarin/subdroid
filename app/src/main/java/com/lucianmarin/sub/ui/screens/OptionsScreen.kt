@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lucianmarin.sub.model.OptionsTab
 import com.lucianmarin.sub.model.SubUser
 import com.lucianmarin.sub.state.AppStateViewModel
 import com.lucianmarin.sub.ui.theme.Route159FontFamily
@@ -53,14 +55,8 @@ import com.lucianmarin.sub.ui.theme.ThemeMode
 import com.lucianmarin.sub.ui.theme.subHorizontalSwipe
 import kotlinx.coroutines.launch
 
-private enum class OptionsTab(val label: String) {
-    PROFILE("Profile"),
-    DETAILS("Details"),
-    ACCOUNT("Account")
-}
-
 /**
- * Matches `templates/pages/profile.html`, `templates/pages/details.html`, `templates/pages/account.html`,
+ * Matches `templates/pages/profile.html`, `templates/pages/account.html`,
  * and `Macreply/Views/OptionsView.swift` 1:1.
  */
 @Composable
@@ -69,7 +65,13 @@ fun OptionsScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var activeTab by remember { mutableStateOf(OptionsTab.PROFILE) }
+    val activeTab = uiState.activeOptionsTab
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.setActiveOptionsTab(OptionsTab.PROFILE)
+        }
+    }
 
     Column(
         modifier = modifier
@@ -80,7 +82,7 @@ fun OptionsScreen(
                     val tabs = OptionsTab.entries
                     val idx = tabs.indexOf(activeTab)
                     if (idx < tabs.lastIndex) {
-                        activeTab = tabs[idx + 1]
+                        viewModel.setActiveOptionsTab(tabs[idx + 1])
                         viewModel.refreshNotificationsOnViewChange()
                         true
                     } else {
@@ -91,7 +93,7 @@ fun OptionsScreen(
                     val tabs = OptionsTab.entries
                     val idx = tabs.indexOf(activeTab)
                     if (idx > 0) {
-                        activeTab = tabs[idx - 1]
+                        viewModel.setActiveOptionsTab(tabs[idx - 1])
                         viewModel.refreshNotificationsOnViewChange()
                         true
                     } else {
@@ -110,7 +112,7 @@ fun OptionsScreen(
             items = OptionsTab.entries.map { it.label to it },
             selected = activeTab,
             onSelect = {
-                activeTab = it
+                viewModel.setActiveOptionsTab(it)
                 viewModel.refreshNotificationsOnViewChange()
             }
         )
@@ -119,10 +121,6 @@ fun OptionsScreen(
 
         when (activeTab) {
             OptionsTab.PROFILE -> ProfileFormView(
-                user = uiState.currentUser,
-                viewModel = viewModel
-            )
-            OptionsTab.DETAILS -> DetailsFormView(
                 user = uiState.currentUser,
                 viewModel = viewModel
             )
@@ -432,208 +430,6 @@ private fun ProfileFormView(
                 title = if (isSubmitting) "Updating..." else "Update",
                 enabled = !isSubmitting,
                 onClick = { submitProfile() }
-            )
-        }
-    }
-}
-
-@Composable
-private fun DetailsFormView(
-    user: SubUser?,
-    viewModel: AppStateViewModel
-) {
-    val uiState by viewModel.uiState.collectAsState()
-    val scope = rememberCoroutineScope()
-
-    var github by remember(user) { mutableStateOf(user?.social?.get("github") ?: "") }
-    var instagram by remember(user) { mutableStateOf(user?.social?.get("instagram") ?: "") }
-    var linkedin by remember(user) { mutableStateOf(user?.social?.get("linkedin") ?: "") }
-    var reddit by remember(user) { mutableStateOf(user?.social?.get("reddit") ?: "") }
-    var phoneCode by remember(user) { mutableStateOf(user?.phone?.get("code")?.toString() ?: "") }
-    var phoneNumber by remember(user) { mutableStateOf(user?.phone?.get("number")?.toString() ?: "") }
-    var paypal by remember(user) { mutableStateOf(user?.social?.get("paypal") ?: "") }
-    var spotify by remember(user) { mutableStateOf(user?.social?.get("spotify") ?: "") }
-    var xHandle by remember(user) { mutableStateOf(user?.social?.get("x") ?: "") }
-
-    var isSubmitting by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var statusMessage by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(user) {
-        if (user != null) {
-            github = user.social["github"] ?: ""
-            instagram = user.social["instagram"] ?: ""
-            linkedin = user.social["linkedin"] ?: ""
-            reddit = user.social["reddit"] ?: ""
-            phoneCode = user.phone["code"]?.toString() ?: ""
-            phoneNumber = user.phone["number"]?.toString() ?: ""
-            paypal = user.social["paypal"] ?: ""
-            spotify = user.social["spotify"] ?: ""
-            xHandle = user.social["x"] ?: ""
-        }
-    }
-
-    fun submitDetails() {
-        if (!uiState.isAuthenticated || isSubmitting) return
-        isSubmitting = true
-        errorMessage = null
-        statusMessage = null
-
-        val fields = mapOf(
-            "github" to github.trim(),
-            "instagram" to instagram.trim(),
-            "linkedin" to linkedin.trim(),
-            "reddit" to reddit.trim(),
-            "code" to phoneCode.trim(),
-            "phone" to phoneNumber.trim(),
-            "number" to phoneNumber.trim(),
-            "paypal" to paypal.trim(),
-            "spotify" to spotify.trim(),
-            "x" to xHandle.trim()
-        )
-
-        scope.launch {
-            try {
-                val res = viewModel.api.updateDetails(payload = fields)
-                val updated = res.user
-                if (updated != null) {
-                    viewModel.updateCurrentUser(updated)
-                    statusMessage = "Details updated."
-                } else {
-                    errorMessage = "Failed to update details."
-                }
-                isSubmitting = false
-            } catch (err: Exception) {
-                errorMessage = err.message ?: "Failed to update details."
-                isSubmitting = false
-            }
-        }
-    }
-
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = TopFormOuterHorizontalPadding, vertical = 15.dp),
-        verticalArrangement = Arrangement.spacedBy(15.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SubFormField(
-                label = "GitHub",
-                value = github,
-                onValueChange = { github = it },
-                maxLength = 15,
-                modifier = Modifier.weight(1f)
-            )
-            SubFormField(
-                label = "Instagram",
-                value = instagram,
-                onValueChange = { instagram = it },
-                maxLength = 15,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SubFormField(
-                label = "LinkedIn",
-                value = linkedin,
-                onValueChange = { linkedin = it },
-                maxLength = 15,
-                modifier = Modifier.weight(1f)
-            )
-            SubFormField(
-                label = "Reddit",
-                value = reddit,
-                onValueChange = { reddit = it },
-                maxLength = 15,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SubFormField(
-                label = "Code",
-                placeholder = "+1",
-                value = phoneCode,
-                onValueChange = { phoneCode = it },
-                maxLength = 4,
-                modifier = Modifier.width(64.dp)
-            )
-            SubFormField(
-                label = "Phone number",
-                value = phoneNumber,
-                onValueChange = { phoneNumber = it },
-                keyboardType = KeyboardType.Phone,
-                maxLength = 15,
-                modifier = Modifier.weight(1f)
-            )
-            SubFormField(
-                label = "PayPal",
-                value = paypal,
-                onValueChange = { paypal = it },
-                maxLength = 60,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SubFormField(
-                label = "Spotify",
-                value = spotify,
-                onValueChange = { spotify = it },
-                maxLength = 15,
-                modifier = Modifier.weight(1f)
-            )
-            SubFormField(
-                label = "X",
-                value = xHandle,
-                onValueChange = { xHandle = it },
-                maxLength = 15,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        if (!errorMessage.isNullOrEmpty()) {
-            Text(
-                text = errorMessage!!,
-                fontFamily = Route159FontFamily,
-                fontSize = 13.sp,
-                lineHeight = 20.sp,
-                color = SubTheme.alert
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (!statusMessage.isNullOrEmpty()) {
-                Text(
-                    text = statusMessage!!,
-                    fontFamily = Route159FontFamily,
-                    fontSize = 13.sp,
-                    lineHeight = 20.sp,
-                    color = SubTheme.gray
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            SubSubmitButton(
-                title = if (isSubmitting) "Updating..." else "Update",
-                enabled = !isSubmitting,
-                onClick = { submitDetails() }
             )
         }
     }

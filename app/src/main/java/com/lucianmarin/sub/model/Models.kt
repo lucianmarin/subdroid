@@ -408,6 +408,11 @@ enum class SidebarSection(
     }
 }
 
+enum class OptionsTab(val label: String) {
+    PROFILE("Profile"),
+    ACCOUNT("Account")
+}
+
 sealed interface NavigationDestination {
     data class ReplyDetail(val id: Int) : NavigationDestination
     data class Member(val username: String) : NavigationDestination

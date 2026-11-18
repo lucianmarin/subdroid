@@ -27,6 +27,7 @@ import androidx.work.WorkerParameters
 import com.lucianmarin.sub.MainActivity
 import com.lucianmarin.sub.R
 import com.lucianmarin.sub.model.NavigationDestination
+import com.lucianmarin.sub.model.OptionsTab
 import com.lucianmarin.sub.model.SidebarSection
 import com.lucianmarin.sub.model.SubEntry
 import com.lucianmarin.sub.model.SubNotifications
@@ -56,6 +57,7 @@ data class AppUiState(
     val navigationPath: List<NavigationDestination> = emptyList(),
     val activeConversationHasMessages: Boolean? = null,
     val activeConversationIsBlocked: Boolean = false,
+    val activeOptionsTab: OptionsTab = OptionsTab.PROFILE,
     val notifications: SubNotifications = SubNotifications(),
     val searchRequestedQuery: String? = null,
     val reloadTrigger: Int = 0,
@@ -96,6 +98,10 @@ data class AppUiState(
         }
     }
 
+    val isInOptions: Boolean
+        get() = navigationPath.lastOrNull() is NavigationDestination.Options ||
+            (navigationPath.isEmpty() && selectedSection == SidebarSection.OPTIONS)
+
     fun targetSectionForBottomNav(section: SidebarSection): SidebarSection =
         section.parentBottomSection
 
@@ -108,6 +114,12 @@ data class AppUiState(
                     activeConversationHasMessages == true -> "chat"
                     activeConversationHasMessages == false -> "sms"
                     else -> section.iconName
+                }
+            }
+            section == SidebarSection.PEOPLE && isInOptions -> {
+                when (activeOptionsTab) {
+                    OptionsTab.PROFILE -> "tune"
+                    OptionsTab.ACCOUNT -> "shield_locked"
                 }
             }
             selectedSection.parentBottomSection == section &&
@@ -245,6 +257,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 navigationPath = emptyList(),
                 activeConversationHasMessages = null,
                 activeConversationIsBlocked = false,
+                activeOptionsTab = OptionsTab.PROFILE,
                 selectedSection = SidebarSection.FEED
             )
         }
@@ -290,6 +303,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 navigationPath = emptyList(),
                 activeConversationHasMessages = null,
                 activeConversationIsBlocked = false,
+                activeOptionsTab = OptionsTab.PROFILE,
                 selectedSection = SidebarSection.TRENDING
             )
         }
@@ -323,7 +337,8 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                     selectedSection = section,
                     navigationPath = emptyList(),
                     activeConversationHasMessages = null,
-                    activeConversationIsBlocked = false
+                    activeConversationIsBlocked = false,
+                    activeOptionsTab = OptionsTab.PROFILE
                 )
             }
         }
@@ -347,6 +362,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 state.copy(
                     activeConversationHasMessages = null,
                     activeConversationIsBlocked = false,
+                    activeOptionsTab = OptionsTab.PROFILE,
                     navigationPath = state.navigationPath + NavigationDestination.ReplyDetail(id)
                 )
             }
@@ -367,6 +383,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 current.copy(
                     activeConversationHasMessages = null,
                     activeConversationIsBlocked = false,
+                    activeOptionsTab = OptionsTab.PROFILE,
                     navigationPath = current.navigationPath + NavigationDestination.Member(clean)
                 )
             }
@@ -385,11 +402,16 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 current.copy(
                     activeConversationHasMessages = null,
                     activeConversationIsBlocked = false,
+                    activeOptionsTab = OptionsTab.PROFILE,
                     navigationPath = current.navigationPath + NavigationDestination.Options
                 )
             }
         }
         if (changed) refreshNotificationsOnViewChange()
+    }
+
+    fun setActiveOptionsTab(tab: OptionsTab) {
+        _uiState.update { it.copy(activeOptionsTab = tab) }
     }
 
     fun openConversation(username: String) {
@@ -405,6 +427,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 current.copy(
                     activeConversationHasMessages = null,
                     activeConversationIsBlocked = false,
+                    activeOptionsTab = OptionsTab.PROFILE,
                     navigationPath = current.navigationPath + NavigationDestination.Conversation(clean)
                 )
             }
@@ -431,6 +454,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 current.copy(
                     activeConversationHasMessages = null,
                     activeConversationIsBlocked = false,
+                    activeOptionsTab = OptionsTab.PROFILE,
                     navigationPath = current.navigationPath + NavigationDestination.EditEntry(entry)
                 )
             }
@@ -444,6 +468,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 navigationPath = emptyList(),
                 activeConversationHasMessages = null,
                 activeConversationIsBlocked = false,
+                activeOptionsTab = OptionsTab.PROFILE,
                 selectedSection = SidebarSection.DISCOVER,
                 searchRequestedQuery = query
             )
@@ -457,6 +482,7 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
                 navigationPath = emptyList(),
                 activeConversationHasMessages = null,
                 activeConversationIsBlocked = false,
+                activeOptionsTab = OptionsTab.PROFILE,
                 selectedSection = SidebarSection.PEOPLE,
                 searchRequestedQuery = query
             )
@@ -473,11 +499,13 @@ class AppStateViewModel(application: Application) : AndroidViewModel(application
         if (path.isEmpty()) return false
         val newPath = path.dropLast(1)
         val topIsConv = newPath.lastOrNull() is NavigationDestination.Conversation
+        val topIsOptions = newPath.lastOrNull() is NavigationDestination.Options
         _uiState.update {
             it.copy(
                 navigationPath = newPath,
                 activeConversationHasMessages = if (topIsConv) it.activeConversationHasMessages else null,
-                activeConversationIsBlocked = if (topIsConv) it.activeConversationIsBlocked else false
+                activeConversationIsBlocked = if (topIsConv) it.activeConversationIsBlocked else false,
+                activeOptionsTab = if (topIsOptions) it.activeOptionsTab else OptionsTab.PROFILE
             )
         }
         refreshNotificationsOnViewChange()

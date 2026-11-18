@@ -550,21 +550,12 @@ class APIClient(
             path = "/${encodeSegment(username.lowercase())}/clear"
         )
 
-    // MARK: - Options (Profile & Details)
+    // MARK: - Options (Profile)
 
     suspend fun updateProfile(payload: Map<String, String>): UserUpdateResponse {
         val raw = requestRaw(
             method = "PATCH",
             path = "/profile",
-            body = mapToJsonObject(payload)
-        )
-        return decodeUserUpdate(raw)
-    }
-
-    suspend fun updateDetails(payload: Map<String, String>): UserUpdateResponse {
-        val raw = requestRaw(
-            method = "PATCH",
-            path = "/details",
             body = mapToJsonObject(payload)
         )
         return decodeUserUpdate(raw)

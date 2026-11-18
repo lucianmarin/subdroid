@@ -2,6 +2,8 @@ package com.lucianmarin.sub
 
 import com.lucianmarin.sub.model.AuthResponse
 import com.lucianmarin.sub.model.MemberResponse
+import com.lucianmarin.sub.model.NavigationDestination
+import com.lucianmarin.sub.model.OptionsTab
 import com.lucianmarin.sub.model.PaginatedChatsResponse
 import com.lucianmarin.sub.model.PaginatedEntriesResponse
 import com.lucianmarin.sub.model.ReplyDetailResponse
@@ -381,6 +383,33 @@ class ModelsSerializationTest {
             SidebarSection.LOGIN,
             unauthedStart.copy(selectedSection = SidebarSection.REGISTER).adjacentSwipeSection(forward = false)
         )
+    }
+
+    @Test
+    fun updatesPeopleIconForOptionsAndAccountPages() {
+        val base = AppUiState(
+            authToken = "token123",
+            currentUser = SubUser(username = "lucian"),
+            selectedSection = SidebarSection.PEOPLE
+        )
+        assertEquals("group", base.bottomNavIconName(SidebarSection.PEOPLE))
+
+        val inOptionsProfile = base.copy(
+            navigationPath = listOf(NavigationDestination.Options),
+            activeOptionsTab = OptionsTab.PROFILE
+        )
+        assertTrue(inOptionsProfile.isInOptions)
+        assertEquals("tune", inOptionsProfile.bottomNavIconName(SidebarSection.PEOPLE))
+
+        val inOptionsAccount = inOptionsProfile.copy(activeOptionsTab = OptionsTab.ACCOUNT)
+        assertEquals("shield_locked", inOptionsAccount.bottomNavIconName(SidebarSection.PEOPLE))
+
+        val viaSectionOptions = base.copy(
+            selectedSection = SidebarSection.OPTIONS,
+            activeOptionsTab = OptionsTab.ACCOUNT
+        )
+        assertTrue(viaSectionOptions.isInOptions)
+        assertEquals("shield_locked", viaSectionOptions.bottomNavIconName(SidebarSection.PEOPLE))
     }
 }
 

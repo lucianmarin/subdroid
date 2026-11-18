@@ -45,6 +45,7 @@ fun SidebarView(
     modifier: Modifier = Modifier
 ) {
     val isInConversation = uiState.navigationPath.lastOrNull() is NavigationDestination.Conversation
+    val isInOptions = uiState.isInOptions
     val activeParentSection = uiState.selectedSection.parentBottomSection
 
     val isDark = LocalSubPalette.current.isDark
@@ -63,6 +64,8 @@ fun SidebarView(
             val isSelected = when {
                 section == SidebarSection.MESSAGES && isInConversation -> true
                 isInConversation -> false
+                section == SidebarSection.PEOPLE && isInOptions -> true
+                isInOptions -> false
                 else -> activeParentSection == section
             }
 
@@ -91,7 +94,7 @@ private fun SidebarIconButton(
     val iconColor = when {
         isSelected -> SubTheme.background
         hasBadge -> SubTheme.alert
-        else -> SubTheme.gray
+        else -> SubTheme.primary
     }
     val badgeColor = if (isSelected) SubTheme.background else SubTheme.alert
     val bgColor = if (isSelected) SubTheme.accent else Color.Transparent

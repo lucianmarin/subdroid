@@ -48,7 +48,7 @@ Colors adapt to System, Light, or Dark mode (user-configurable in `Options` $\ri
 | Style | Font Family | Weight | Size | Line Height | Usage |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Body / Content** | `Route 159` | Normal / Bold | `14.sp` | `20.sp` | Entry content, author `fullName`, `@username`, chat messages, form inputs, `Load more`, `Clear out` |
-| **Menu Header (`SubMenuHeader`)** | `Route 159` | Bold | `14.sp` | `20.sp` | Top subtab headers (`Messages · Replies · Mentions`, `Trending · Saved · Followers · Following`, `Profile · Details · Account`, `Login · Register`, `About · Privacy · Safety · Terms`) |
+| **Menu Header (`SubMenuHeader`)** | `Route 159` | Bold | `14.sp` | `20.sp` | Top subtab headers (`Messages · Replies · Mentions`, `Trending · Saved · Followers · Following`, `Profile · Account`, `Login · Register`, `About · Privacy · Safety · Terms`) |
 | **Small Metadata (`.small`)** | `Route 159` | Normal | `13.sp` | `16.sp` | Entry action bar (`reply`, `edit`, `save`, `delete`, `undo`, `yes`), timestamps, profile metadata (`link`, `~ age`, `from city`, `Also on...`), form field labels, validation errors |
 | **Small Caps (`.small.caps`)** | `Route 159` | Normal | `12.sp` | `16.sp` | `MemberStatusRowView` (`NOTES`, `EDIT`, `LOGOUT`, `MESSAGE`, `FOLLOW`, `UNFOLLOW`, `FOLLOWS YOU`) |
 | **Composer Counter** | `Route 159` | Normal | `10.sp` | `10.sp` | Live character count inside `ComposerView` |
@@ -69,8 +69,8 @@ Colors adapt to System, Light, or Dark mode (user-configurable in `Options` $\ri
 
 ### 2.4 Google Material Symbols Font (`SubIcons.kt`)
 
-All icons are rendered from the subsetted Google **Material Symbols Rounded** TrueType font (`res/font/material_symbols_rounded.ttf`, `20pt Medium`, `8,100` bytes) containing the 20 icons used in the UI:
-`account_circle`, `alternate_email`, `bolt`, `bookmark`, `cancel`, `chat`, `chat_bubble`, `feedback`, `group`, `info`, `language`, `lock`, `move_down`, `move_up`, `person_add`, `reply`, `search`, `sms`, `trending_up`, `tune`.
+All icons are rendered from the subsetted Google **Material Symbols Rounded** TrueType font (`res/font/material_symbols_rounded.ttf`, `20pt Medium`, `8,392` bytes) containing the 21 icons used in the UI:
+`account_circle`, `alternate_email`, `bolt`, `bookmark`, `cancel`, `chat`, `chat_bubble`, `feedback`, `group`, `info`, `language`, `lock`, `move_down`, `move_up`, `person_add`, `reply`, `search`, `shield_locked`, `sms`, `trending_up`, `tune`.
 
 ---
 
@@ -103,6 +103,7 @@ All icons are rendered from the subsetted Google **Material Symbols Rounded** Tr
 
 3. **Dynamic Floating Bar Icons**:
    - When inside a 1-on-1 `Conversation`, the `MESSAGES` button displays `"feedback"` if the conversation is blocked (waiting for a response), `"chat"` if the conversation has messages, or `"sms"` if empty.
+   - When inside `Options`, the `PEOPLE` button displays `"tune"` on the `Profile` tab and `"shield_locked"` on the `Account` tab.
    - When a subtab is active under `MESSAGES` (`REPLIES`, `MENTIONS`), `TRENDING` (`SAVED`, `FOLLOWERS`, `FOLLOWING`), or `LOGIN` (`REGISTER`), the corresponding bottom bar button displays the active subtab's icon (`"reply"`, `"alternate_email"`, `"bookmark"`, `"move_down"`, `"move_up"`, `"person_add"`). When another section is active, bottom bar buttons display the first subtab's icon and tapping them navigates to the first subtab.
 
 4. **Selection, Badges & Push Navigation**:
@@ -170,7 +171,7 @@ All icons are rendered from the subsetted Google **Material Symbols Rounded** Tr
 ### 4.6 Options, Auth & About (`OptionsScreen.kt` & `AuthScreens.kt`)
 
 - **`OptionsScreen`**:
-  - `SubMenuHeader` with `Profile` (`PATCH /api/profile`), `Details` (`PATCH /api/details`), and `Account` (API Base URL, Notifications polling interval in minutes (`default = 5`, clamped to `>= 1`), Theme selector: `System` / `Light` / `Dark`, and `Logout`).
+  - `SubMenuHeader` with `Profile` (`PATCH /api/profile`) and `Account` (API Base URL, Notifications polling interval in minutes (`default = 5`, clamped to `>= 1`), Theme selector: `System` / `Light` / `Dark`, and `Logout`).
 - **`LoginScreen`**:
   - `SubMenuHeader` with `Login` (`POST /api/login`) and `Register` (`POST /api/register`).
 - **`AboutScreen`**:
