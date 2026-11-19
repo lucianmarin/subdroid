@@ -1,3 +1,13 @@
+# Room instantiates the generated RoomDatabase_Impl reflectively through its
+# no-arg constructor. Room 2.6.1 only ships "-keep class * extends
+# androidx.room.RoomDatabase", which keeps the class but not its members, so R8
+# full mode strips the constructor. WorkManager then crashes during startup in
+# androidx.startup.InitializationProvider with:
+#   NoSuchMethodException: androidx.work.impl.WorkDatabase_Impl.<init> []
+-keep class * extends androidx.room.RoomDatabase {
+    public <init>();
+}
+
 # Keep kotlinx.serialization descriptors
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.AnnotationsKt

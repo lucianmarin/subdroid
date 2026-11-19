@@ -14,7 +14,7 @@ android {
         applicationId = "com.lucianmarin.sub"
         minSdk = 26
         targetSdk = 36
-        versionCode = 11
+        versionCode = 13
         versionName = "2.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
