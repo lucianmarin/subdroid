@@ -199,10 +199,11 @@ fun MemberScreen(
             )
             SubDivider()
 
-            // 2. Social & donation links (`templates/items/links.html`)
+            // 2. Status line: work, social links, donations (`templates/common/status.html`)
+            val workSummary = user.workSummary
             val links = user.allLinks
-            val donation = user.donated
-            if (links.isNotEmpty() || donation > 0.0) {
+            val donation = kotlin.math.round(user.donations).toInt()
+            if (workSummary.isNotEmpty() || links.isNotEmpty() || donation > 0) {
                 MemberLinksView(user = user)
                 SubDivider()
             }
@@ -515,7 +516,7 @@ fun UserRowView(
 }
 
 /**
- * Matches `templates/items/links.html` (`Also on ... Donated $X.`).
+ * Matches `templates/common/status.html` (`.entry .status`: work, social links, donations).
  */
 @Composable
 fun MemberLinksView(
@@ -523,39 +524,36 @@ fun MemberLinksView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val workSummary = remember(user) { user.workSummary }
     val links = remember(user) { user.allLinks }
-    val donation = user.donated.toInt()
+    val donation = kotlin.math.round(user.donations).toInt()
 
     val grayColor = SubTheme.gray
+    val textStyle = SpanStyle(
+        fontFamily = Route159FontFamily,
+        fontSize = 13.sp,
+        color = grayColor
+    )
 
     val annotated = buildAnnotatedString {
-        if (links.isNotEmpty()) {
-            withStyle(
-                SpanStyle(
-                    fontFamily = Route159FontFamily,
-                    fontSize = 13.sp,
-                    color = grayColor
-                )
-            ) {
-                append("Also on ")
+        var hasContent = false
+
+        if (workSummary.isNotEmpty()) {
+            withStyle(textStyle) {
+                append("$workSummary.")
             }
-            val linkStyle = TextLinkStyles(
-                style = SpanStyle(
-                    fontFamily = Route159FontFamily,
-                    fontSize = 13.sp,
-                    color = grayColor
-                )
-            )
+            hasContent = true
+        }
+
+        if (links.isNotEmpty()) {
+            withStyle(textStyle) {
+                append(if (hasContent) " Also on " else "Also on ")
+            }
+            val linkStyle = TextLinkStyles(style = textStyle)
             links.forEachIndexed { idx, social ->
                 if (idx > 0) {
                     val sep = if (idx == links.size - 1) " and " else ", "
-                    withStyle(
-                        SpanStyle(
-                            fontFamily = Route159FontFamily,
-                            fontSize = 13.sp,
-                            color = grayColor
-                        )
-                    ) {
+                    withStyle(textStyle) {
                         append(sep)
                     }
                 }
@@ -571,26 +569,15 @@ fun MemberLinksView(
                     append(social.label)
                 }
             }
-            withStyle(
-                SpanStyle(
-                    fontFamily = Route159FontFamily,
-                    fontSize = 13.sp,
-                    color = grayColor
-                )
-            ) {
+            withStyle(textStyle) {
                 append(".")
             }
+            hasContent = true
         }
 
         if (donation > 0) {
-            withStyle(
-                SpanStyle(
-                    fontFamily = Route159FontFamily,
-                    fontSize = 13.sp,
-                    color = grayColor
-                )
-            ) {
-                append(if (links.isEmpty()) "Donated $$donation." else " Donated $$donation.")
+            withStyle(textStyle) {
+                append(if (hasContent) " Donated $$donation." else "Donated $$donation.")
             }
         }
     }

@@ -1,17 +1,66 @@
 package com.lucianmarin.sub.model
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonTransformingSerializer
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 data class SocialLinkItem(
     val label: String,
     val url: String
 )
+
+@Serializable(with = WorkEntrySerializer::class)
+data class WorkEntry(
+    val startYear: Int,
+    val endYear: Int? = null,
+    val company: String
+)
+
+object WorkEntrySerializer : KSerializer<WorkEntry> {
+    private val arraySerializer = JsonArray.serializer()
+    override val descriptor: SerialDescriptor = arraySerializer.descriptor
+
+    override fun deserialize(decoder: Decoder): WorkEntry {
+        val array = arraySerializer.deserialize(decoder)
+        val startYear = array.getOrNull(0)?.jsonPrimitive?.intOrNull ?: 0
+        val endElement = array.getOrNull(1)
+        val endYear = if (endElement == null || endElement is JsonNull) {
+            null
+        } else {
+            endElement.jsonPrimitive.intOrNull
+        }
+        val company = array.getOrNull(2)?.jsonPrimitive?.content.orEmpty()
+        return WorkEntry(startYear = startYear, endYear = endYear, company = company)
+    }
+
+    override fun serialize(encoder: Encoder, value: WorkEntry) {
+        val array = JsonArray(
+            listOf(
+                JsonPrimitive(value.startYear),
+                value.endYear?.let { JsonPrimitive(it) } ?: JsonNull,
+                JsonPrimitive(value.company)
+            )
+        )
+        arraySerializer.serialize(encoder, array)
+    }
+}
+
+private fun joinHumanList(parts: List<String>): String = when (parts.size) {
+    0 -> ""
+    1 -> parts[0]
+    else -> parts.dropLast(1).joinToString(", ") + " and " + parts.last()
+}
 
 @Serializable
 data class SubUser(
@@ -24,7 +73,7 @@ data class SubUser(
     @SerialName("last_name") val lastName: String = "",
     @SerialName("created_at") val createdAt: Double = 0.0,
     @SerialName("seen_at") val seenAt: Double = 0.0,
-    val donated: Double = 0.0,
+    val donations: Double = 0.0,
     val timestamp: String = "",
     val emoji: String = "",
     val birthday: String = "",
@@ -32,7 +81,8 @@ data class SubUser(
     val link: String = "",
     val description: String = "",
     val phone: Map<String, String> = emptyMap(),
-    val social: Map<String, String> = emptyMap()
+    val social: Map<String, String> = emptyMap(),
+    val work: List<WorkEntry> = emptyList()
 ) {
     val fullName: String
         get() = rawFullName?.takeIf { it.isNotBlank() } ?: username
@@ -40,28 +90,51 @@ data class SubUser(
     val cityLabel: String
         get() = location.split(",").firstOrNull()?.trim().orEmpty()
 
+    val workSummary: String
+        get() {
+            if (work.isEmpty()) return ""
+            val items = work.sortedWith(
+                compareByDescending<WorkEntry> { it.startYear }
+                    .thenByDescending { it.endYear ?: 9999 }
+            )
+            val current = items.filter { it.endYear == null }.map { "${it.company} since ${it.startYear}" }
+            val pastItems = items.filter { it.endYear != null }
+            val past = pastItems.map { it.company }
+            val years = pastItems.sumOf { (it.endYear ?: it.startYear) - it.startYear }
+            val sentences = mutableListOf<String>()
+            if (current.isNotEmpty()) {
+                sentences.add("Works at ${joinHumanList(current)}")
+                if (past.isNotEmpty()) {
+                    sentences.add("Previously at ${joinHumanList(past)} for $years years")
+                }
+            } else if (past.isNotEmpty()) {
+                val startYear = pastItems.minOf { it.startYear }
+                val endYear = pastItems.maxOf { it.endYear!! }
+                sentences.add("Worked at ${joinHumanList(past)} between $startYear and $endYear for $years years")
+            }
+            return sentences.joinToString(". ")
+        }
+
     val socialLinks: List<SocialLinkItem>
         get() {
             val mapping: List<Triple<String, String, (String) -> String>> = listOf(
-                Triple("behance", "Behance") { "https://www.behance.net/$it" },
+                Triple("behance", "Bēhance") { "https://behance.net/$it" },
                 Triple("dribbble", "Dribbble") { "https://dribbble.com/$it" },
-                Triple("figma", "Figma") { "https://www.figma.com/@$it" },
+                Triple("figma", "Figma") { "https://figma.com/@$it" },
                 Triple("github", "GitHub") { "https://github.com/$it" },
-                Triple("instagram", "Instagram") { "https://www.instagram.com/$it" },
-                Triple("linkedin", "LinkedIn") { "https://www.linkedin.com/in/$it" },
-                Triple("medium", "Medium") { "https://medium.com/@$it" },
-                Triple("paypal", "PayPal") { "https://www.paypal.com/paypalme/$it" },
-                Triple("reddit", "Reddit") { "https://www.reddit.com/user/$it" },
+                Triple("instagram", "Instagram") { "https://instagram.com/$it" },
+                Triple("linkedin", "LinkedIn") { "https://linkedin.com/in/$it" },
+                Triple("patreon", "Patreon") { "https://patreon.com/$it" },
+                Triple("paypal", "PayPal") { "https://paypal.me/$it" },
+                Triple("pinboard", "Pinboard") { "https://pinboard.in/u:$it/" },
+                Triple("pinterest", "Pinterest") { "https://pinterest.com/$it" },
+                Triple("reddit", "Reddit") { "https://reddit.com/u/$it" },
+                Triple("soundcloud", "SoundCloud") { "https://soundcloud.com/$it" },
                 Triple("spotify", "Spotify") { "https://open.spotify.com/user/$it" },
-                Triple("steam", "Steam") { "https://steamcommunity.com/id/$it" },
-                Triple("substack", "Substack") { "https://$it.substack.com/" },
                 Triple("telegram", "Telegram") { "https://t.me/$it" },
-                Triple("tiktok", "TikTok") { "https://www.tiktok.com/@$it" },
-                Triple("twitch", "Twitch") { "https://www.twitch.tv/$it" },
-                Triple("tumblr", "Tumblr") { "https://$it.tumblr.com/" },
-                Triple("vk", "VK") { "https://vk.com/$it" },
+                Triple("threads", "Threads") { "https://threads.com/@$it" },
                 Triple("x", "X") { "https://x.com/$it" },
-                Triple("youtube", "YouTube") { "https://www.youtube.com/@$it" }
+                Triple("youtube", "YouTube") { "https://youtube.com/@$it" }
             )
             return mapping.mapNotNull { (key, label, builder) ->
                 val handle = social[key]?.trim().orEmpty()
@@ -102,9 +175,10 @@ data class SubUser(
             birthday == other.birthday &&
             link == other.link &&
             emoji == other.emoji &&
-            donated == other.donated &&
+            donations == other.donations &&
             phone == other.phone &&
-            social == other.social
+            social == other.social &&
+            work == other.work
     }
 
     override fun hashCode(): Int = username.lowercase().hashCode()

@@ -41,7 +41,7 @@ class ModelsSerializationTest {
                 "follows": false,
                 "created_at": 1735689600.0,
                 "seen_at": 1735689900.0,
-                "donated": 10.0,
+                "donations": 10.0,
                 "timestamp": "1m",
                 "phone": {
                   "code": "40",
@@ -50,7 +50,11 @@ class ModelsSerializationTest {
                 "social": {
                   "github": "lucianmarin",
                   "x": "lucianmarin"
-                }
+                },
+                "work": [
+                  [2020, null, "Subreply"],
+                  [2015, 2020, "Acme"]
+                ]
               }
             }
         """.trimIndent()
@@ -64,6 +68,8 @@ class ModelsSerializationTest {
         assertEquals("☕", user?.emoji)
         assertEquals("Designer & developer", user?.description)
         assertEquals("Bucharest, Romania", user?.location)
+        assertEquals(10.0, user?.donations ?: 0.0, 0.001)
+        assertEquals("Works at Subreply since 2020. Previously at Acme for 5 years", user?.workSummary)
     }
 
     @Test
@@ -410,6 +416,29 @@ class ModelsSerializationTest {
         )
         assertTrue(viaSectionOptions.isInOptions)
         assertEquals("shield_locked", viaSectionOptions.bottomNavIconName(SidebarSection.PEOPLE))
+    }
+
+    @Test
+    fun formatsWorkSummaryLikeSubreplyWorkplacesFilter() {
+        val pastOnly = json.decodeFromString(
+            SubUser.serializer(),
+            """{"username":"alice","work":[[2016,2019,"Beta"],[2012,2016,"Alpha"]]}"""
+        )
+        assertEquals(
+            "Worked at Beta and Alpha between 2012 and 2019 for 7 years",
+            pastOnly.workSummary
+        )
+
+        val currentOnly = json.decodeFromString(
+            SubUser.serializer(),
+            """{"username":"bob","work":[[2021,null,"Subreply"],[2023,null,"Studio"]]}"""
+        )
+        assertEquals(
+            "Works at Studio since 2023 and Subreply since 2021",
+            currentOnly.workSummary
+        )
+
+        assertEquals("", SubUser(username = "empty").workSummary)
     }
 }
 
